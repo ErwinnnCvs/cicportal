@@ -1,0 +1,2 @@
+INSERT INTO tbmenu (fld_nid, fld_sid, fld_rid, fld_title, fld_published, fld_users, fld_maintenance) 
+VALUES (109, 1, 0, 'Update Credentials Detail', 1, '12|155|179|96|130|9|143|132|173|150|76|197', 0);

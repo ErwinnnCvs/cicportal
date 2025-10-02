@@ -3,15 +3,16 @@ error_reporting(E_ALL);
 ini_set('display_errors', 0);
 
 
-if ($_SESSION['user_id'] == 12) {
+if (in_array($_SESSION['user_id'], $tech_team)) {
   $type = 1;//For Technical
-}elseif ($_SESSION['user_id'] == 143) {
-  $type = 2;// FOr Legal
+} elseif (in_array($_SESSION['user_id'], $legal_team)) {
+  $type = 2;// For Legal
+} else {
+  $type = 1; // Default to technical
 }
 
-if ($_SESSION['user_id'] == 76) {
+if ($_SESSION['user_id'] == 76 || $_SESSION['user_id'] == 197) {
   $querytype = "";
-  $type = 1;
 } else {
   $querytype = " and fld_type = ".$type;
 }
@@ -131,7 +132,7 @@ $gapc=$get_all_pending_count->fetch_array();
                 if (mysqli_num_rows($get_cic_personnel) > 0) {
                   $gcicp=$get_cic_personnel->fetch_array();
                 } else {
-
+                  $gcicp['fld_name'] = 'N/A';
                 }
             ?>
             <tr>

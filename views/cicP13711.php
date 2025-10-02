@@ -307,8 +307,8 @@ if (empty($cll['fld_created_at'])) {
                         <!-- <a href="#" class="btn btn-tool btn-sm">
                           <i class="fas fa-download"></i>
                         </a> -->
-                        <a href="main.php?nid=137&sid=1&rid=2&provcode=<?php echo $gsd['provcode']; ?>" class="btn btn-tool btn-sm">
-                          See All
+                        <a href="main.php?nid=139&sid=1&rid=1&provcode=<?php echo $gsd['provcode']; ?>" class="btn btn-tool btn-sm">
+                          View
                         </a>
                       </div>
                     </div>

@@ -113,13 +113,11 @@ error_reporting(E_ALL);
                 while ($row=$sql->fetch_array()) {
                 ?>
                 <tr>
-                  <form method="post" action="main.php?nid=109&sid=1&rid=0">
-                    <td><?php echo $row['fld_provcode']; ?><input type="text" name="ctrlno" hidden value="<?php echo $row['fld_ctrlno'] ?>"></td>
+                    <td><?php echo $row['fld_provcode']; ?></td>
                     <td><?php echo $row['fld_name']; ?></td>
                     <td><?php echo $ent2[$row['fld_type']]; ?></td>
                     <td><?php echo date("F d, Y H:ia", strtotime($row['fld_batops_ts'])); ?></td>
-                    <td><button class="btn btn-success btn-block">View</button></td>
-                  </form>
+                    <td><a href="main.php?nid=109&sid=1&rid=0&ctrlno=<?php echo $row['fld_ctrlno']; ?>" class="btn btn-success btn-block">View</a></td>
                 </tr>
                 <?php
                 }
@@ -135,18 +133,44 @@ error_reporting(E_ALL);
 <?php
 if (isset($_POST['sbtGenerate'])) {
   $timestamp = date("Y-m-d H:i:s");
-  $get_entities = $dbh4->query("SELECT fld_ctrlno, AES_DECRYPT(fld_provcode, MD5(CONCAT(fld_ctrlno, 'RA3019'))) AS fld_provcode, AES_DECRYPT(fld_name, MD5(CONCAT(fld_ctrlno, 'RA3019'))) AS fld_name FROM tbentities WHERE fld_seis_noc_ts is null and fld_seis_noc_status = 0 and fld_status = 1");
+  $get_entities = $dbh4->query("SELECT fld_ctrlno, AES_DECRYPT(fld_provcode, MD5(CONCAT(fld_ctrlno, 'RA3019'))) AS fld_provcode, AES_DECRYPT(fld_name, MD5(CONCAT(fld_ctrlno, 'RA3019'))) AS fld_name, fld_mnemonics FROM tbentities WHERE fld_seis_noc_ts is null and fld_seis_noc_status = 0 and fld_status = 1");
   
   if (mysqli_num_rows($get_entities) > 0) {
     if (!is_dir('nocusers/seis')) {
       mkdir('nocusers/seis', 0777, true);
     }
-    $fp = fopen('nocusers/seis/SEIS-Users_'.date("Y-m-d_H-i-s").'.csv', 'w');
+    $fp = fopen('nocusers/seis/SEIS-Users_'.date("Y-m-d H-i-s").'.csv', 'w');
     if ($fp) {
-      fputcsv($fp, array('Control No', 'Provider Code', 'Entity Name', 'Generated Date'));
-      while($row = mysqli_fetch_array($get_entities, MYSQLI_ASSOC)) {
-        fputcsv($fp, array($row['fld_ctrlno'], $row['fld_provcode'], $row['fld_name'], $timestamp));
-        $dbh4->query("UPDATE tbentities SET fld_seis_noc_ts = '$timestamp', fld_seis_noc_status = 1, fld_noc_pass_status = 1 WHERE fld_ctrlno = '".$row['fld_ctrlno']."'");
+      $placed_header = false;
+      while($entity = mysqli_fetch_array($get_entities, MYSQLI_ASSOC)) {
+        $controlNo = $entity['fld_ctrlno'];
+        $key = $controlNo."RA3019";
+        $mnemonic = $entity['fld_mnemonics'];
+        $provcode = $entity['fld_provcode'];
+        $company = $entity['fld_name'];
+        
+        $genCsv = $dbh4->query("SELECT fld_oid, AES_DECRYPT(fld_fname, md5('".$key."')) AS fld_fname, AES_DECRYPT(fld_mname, md5('".$key."')) fld_mname, AES_DECRYPT(fld_lname, md5('".$key."')) fld_lname, AES_DECRYPT(fld_email, md5('".$key."')) fld_email FROM tboperators WHERE fld_ctrlno = '".$controlNo."' and fld_batch = 1 and fld_delete = 0");
+        
+        while($gcsv = mysqli_fetch_array($genCsv, MYSQLI_ASSOC)) {
+          $password = bin2hex(random_bytes(6));
+          $middle = $gcsv['fld_mname'] ?: 'N';
+          $fname = substr($gcsv['fld_fname'], 0, 1);
+          $mname = $gcsv['fld_mname'] ? substr($gcsv['fld_mname'], 0, 1) : 'N';
+          $lname = substr($gcsv['fld_lname'], 0, 1);
+          $username = $mnemonic."4".$fname.$mname.$lname;
+          
+          $arr = [$mnemonic, $provcode, $username, $password, $gcsv['fld_fname'], $middle, $gcsv['fld_lname'], $gcsv['fld_email'], 'FTP / Production', $company];
+          $head = ['Meme', 'ProviderCode', 'SamAccount', 'Password', 'Fname', 'Initial', 'LName', 'Email', 'Channel / Environment', 'Company Name'];
+          
+          if(!$placed_header) {
+            fputcsv($fp, $head);
+            $placed_header = true;
+          }
+          
+          fputcsv($fp, array_values($arr));
+        }
+        
+        $dbh4->query("UPDATE tbentities SET fld_seis_noc_ts = '$timestamp', fld_seis_noc_status = 1, fld_noc_pass_status = 1 WHERE fld_ctrlno = '".$controlNo."'");
       }
       fclose($fp);
       echo "<script>alert('Credentials generated successfully!'); window.location.reload();</script>";
