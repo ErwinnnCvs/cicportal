@@ -1,0 +1,403 @@
+<?php
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
+error_reporting(E_ALL);
+if(!$_POST['sel_type']){
+  $_POST['sel_type'] = 'CC';
+}
+if(!$_POST['navbutton']){
+  $_POST['navbutton'][0] = "0";
+}
+
+$selectedtype[$_POST['sel_type']] = " selected";
+
+$submission_type = array("REGULAR SUBMISSION", "CORRECTION FILE", "DISPUTE", "HISORICAL DATA", "EXTENDED REGULAR SUBMISSION", "LATE SUBMISSION");
+
+$date1 = date('Y-01-01');
+$date2 = date('Y-m-d');
+
+$ts1 = strtotime($date1);
+$ts2 = strtotime($date2);
+
+$year1 = date('Y', $ts1);
+$year2 = date('Y', $ts2);
+
+$month1 = date('m', $ts1);
+$month2 = date('m', $ts2);
+
+$diff = (($year2 - $year1) * 12) + ($month2 - $month1);
+
+if ($_POST['sendLocEmail']) {
+  $provcode = $_POST['sendLocEmail'];
+  include("mailer/sendloc.php");
+}
+
+
+?>
+
+<!-- Main content -->
+<section class="content">
+
+  <!-- Default box -->
+  <div class="card">
+    <form method="POST">
+    <!-- <div class="card-header">
+      <div class="input-group-prepend">
+        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+          By Submitting Entity
+        </button>
+        <ul class="dropdown-menu">
+          <li class="dropdown-item"><a href="main.php?nid=128&sid=0&rid=0">By Submitting Entity</a></li>
+          <li class="dropdown-item"><a href="main.php?nid=128&sid=2&rid=0">By Tickets</a></li>
+        </ul>
+      </div>
+    </div> -->
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-3">
+            <div class="form-group">
+              <label>Select Type</label>
+                <select class="form-control select2" name="sel_type" id="sel_type" style="width: 100%;" onchange="submit()">
+                      <!-- <option value="all">All</option> -->
+                      <?php
+                          $get_all_se_types = $dbh4->query("SELECT SUBSTRING(AES_DECRYPT(fld_provcode, md5(CONCAT(fld_ctrlno, 'RA3019'))), 1, 2) AS types FROM tbentities WHERE AES_DECRYPT(fld_provcode, md5(CONCAT(fld_ctrlno, 'RA3019'))) <> '' GROUP BY types ORDER BY types");
+                          while($gast=$get_all_se_types->fetch_array()){
+                              echo "<option value='".$gast['types']."'".$selectedtype[$gast['types']].">".$gast['types']." - ".$ent2[$gast['types']]."</option>";
+                          }
+                      ?>
+                  </select>
+              </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="form-group">
+              <label>Search</label> <small>( Enter either Provider Code or Part of the Company Name, this is case sensitive )</small>
+              <div class="input-group">
+                <input type="text" name="txtSearch" class="form-control" placeholder="Search...">
+                  <span class="input-group-btn">
+                    <button type="submit" name="sbtSearch" id="search-btn" class="btn btn-flat"><i class="fa fa-search"></i>
+                  </button>
+                </span>
+              </div>
+            </div>
+          </div>
+      </div>
+      <table id="casemanagement" class="table table-bordered table-striped dataTable dtr-inline" aria-describedby="example1_info">
+      <thead>
+          <tr>
+            <th tabindex="0" rowspan="1" colspan="1">Provider Code</th>
+            <th tabindex="0" rowspan="1" colspan="1">Submitting Entity</th>
+            <th tabindex="0" rowspan="1" colspan="1" width="15%"><center>Last Login (CE Portal)</center></th>
+            <!-- <th tabindex="0" rowspan="1" colspan="1"><center>Priority</center></th> -->
+            <th tabindex="0" rowspan="1" colspan="1"><center>Tickets</center></th>
+            <th tabindex="0" rowspan="1" colspan="1"><center>Missed Months</center></th>
+            <th tabindex="0" rowspan="1" colspan="1"><center>Last Submitted</center></th>
+            <th tabindex="0" rowspan="1" colspan="1"><center>Last Loaded</center></th>
+            <th tabindex="0" rowspan="1" colspan="1" width="10%"><center>Action</center></th>
+            <th tabindex="0" rowspan="1" colspan="1"><center>System Remarks</center></th>
+            <th tabindex="0" rowspan="1" colspan="1"><center>CIC Remarks</center></th>
+          </tr>
+      </thead>
+      <tbody>
+      
+      <?php
+        if ($_SESSION['user_id'] == 76) {
+          $query = '';
+          $queryfreshdesk = '';
+        } else {
+          $query = ' and b.fld_assign = '.$_SESSION['user_id'];
+          $queryfreshdesk = " and fld_type = ".$type;
+        }
+
+        if ($_POST['sel_type'] == 'all') {
+          $querytype = "";
+        } else {
+          
+        }
+
+        if($_POST['txtSearch']){
+          $srch = " AND (AES_DECRYPT(a.fld_provcode, md5(CONCAT(fld_ctrlno, 'RA3019'))) LIKE '%".$_POST['txtSearch']."%' OR AES_DECRYPT(a.fld_name, md5(CONCAT(fld_ctrlno, 'RA3019'))) LIKE '%".$_POST['txtSearch']."%')".$query;
+        }
+        $rctr = key($_POST['navbutton']);
+
+        $get_all_seps_sub=$dbh4->query("SELECT a.fld_ctrlno, a.fld_type, AES_DECRYPT(a.fld_provcode, md5(CONCAT(a.fld_ctrlno, 'RA3019'))) as fld_provcode, AES_DECRYPT(a.fld_name, md5(CONCAT(fld_ctrlno, 'RA3019'))) as fld_name FROM tbentities a LEFT JOIN tbassign b ON AES_DECRYPT(a.fld_provcode, md5(CONCAT(a.fld_ctrlno, 'RA3019'))) = b.fld_provcode WHERE b.fld_active = 1 AND AES_DECRYPT(a.fld_provcode, md5(CONCAT(fld_ctrlno, 'RA3019'))) LIKE '".$_POST['sel_type']."%'".$srch." GROUP BY AES_DECRYPT(a.fld_provcode, md5(CONCAT(a.fld_ctrlno, 'RA3019'))) LIMIT ".key($_POST['navbutton']).", 20");
+        while ($gass=$get_all_seps_sub->fetch_array()) {
+          $check_loc_logs = $dbh4->query("SELECT fld_created_at FROM tbloclogs WHERE fld_provcode = '".$gass['fld_provcode']."'");
+          $cll=$check_loc_logs->fetch_array();
+
+          if (empty($cll['fld_created_at'])) {
+            $last_sent_logs = 0;
+          } else {
+            $last_sent_logs = $cll['fld_created_at'];
+          }
+          $users = array();
+          $get_users_in_ceportal = $dbh->query("SELECT pkUserId FROM tbusers WHERE fld_provcode = '".$gass['fld_provcode']."' and is_active = 1 and email <> '' and is_admin <= 3");
+          while($guic=$get_users_in_ceportal->fetch_array()){
+            array_push($users, $guic['pkUserId']);
+          }
+
+          $get_last_filed_regular_transmittal = $dbh4->query("SELECT fld_filename, fld_date_covered FROM tbtransmittal WHERE fld_provcode = '".$gass['fld_provcode']."' AND fld_trans_type = 1 ORDER BY fld_filed_date_ts DESC LIMIT 1");
+          $glfrt=$get_last_filed_regular_transmittal->fetch_array();
+
+          $missed_months = 0;
+
+          for ($m=1; $m<=$diff; $m++) {
+            $month = date('Y-m', mktime(0,0,0,$m, 1, date('Y')));
+
+            $check_submission_transmittal = $dbh4->query("SELECT fld_id FROM tbtransmittal WHERE fld_provcode = '".$gass['fld_provcode']."' AND fld_trans_type = 1 and fld_date_covered LIKE '".$month."%' GROUP BY DATE_FORMAT(fld_date_covered, '%Y-%m')");
+            $cst=$check_submission_transmittal->fetch_array();
+            if ($cst['fld_id']) {
+            } else {
+              $missed_months += 1;
+            }
+          }
+
+          $get_loaded_subject = $dbh4->query("SELECT * FROM tbsubmissiondata WHERE CODPROVIDERCODE = '".$gass['fld_provcode']."' AND YEAR(DATFILEREFERENCEDATE) = ".date("Y")." ORDER BY DATFILEREFERENCEDATE DESC LIMIT 1");
+          $gls=$get_loaded_subject->fetch_array();
+
+          $subject_loaded = $gls['NUMCPSRECORDSINSERTEDNUMBER'] + $gls['NUMCPSRECORDSUPDATEDNUMBER'];
+
+          $contract_loaded = $gls['NUMCPCRECORDSINSERTEDNUMBER'] + $gls['NUMCPCRECORDSUPDATEDNUMBER'];
+
+          $loaded_date = $gls['DATFILEREFERENCEDATE'];
+
+          $division = $missed_months / $diff;
+          $missed_months_percentage = $division * 100;
+
+
+          $type = 0;
+          $count_all_tickets=$dbh->query("SELECT COUNT(*) as cnt FROM tbfreshdesk WHERE fld_provcode = '".$gass['fld_provcode']."' and fld_status <> 4 and fld_status <> 5".$queryfreshdesk);
+          $cat=$count_all_tickets->fetch_array();
+
+          $ticketcnt = $cat['cnt'];
+
+
+
+
+      ?>
+    
+      <tr class="odd">
+        <td>
+            <?php echo $gass['fld_provcode']; ?>
+        </td>
+        <td class="sorting_1 dtr-control" tabindex="0" >
+            <a href="main.php?nid=137&sid=1&rid=1&provcode=<?php echo $gass['fld_provcode']; ?>">
+            <?php
+              echo $gass['fld_name'];
+            ?>
+            </a>
+        </td>
+        <td class="">
+          <center>
+          <?php
+            $check_array = count($users);
+
+            if($check_array > 0) {
+              $get_last_login = $dbh->query("SELECT * FROM tbloginhistory WHERE fld_userid IN (". implode(',', $users) .") ORDER BY fld_login DESC");
+              $gll=$get_last_login->fetch_array();
+
+              if ($gll['fld_login'] and $gll['fld_login'] != '0000-00-00 00:00:00') {
+                echo date("d M Y h:ia", strtotime($gll['fld_login']));
+              } else {
+                echo "NA";
+              }
+            } else {
+              echo "No Users";
+            }
+          ?>
+            
+          </center>
+        </td>
+        <!-- <td><center></center></td> -->
+        <td>
+          <center>  
+              <?php
+                  echo $ticketcnt;
+              ?>
+          </center>
+        </td>
+        
+        <td>
+          <center>
+            <?php
+              echo round($missed_months_percentage)."%";
+            ?>
+          </center>
+        </td>
+        <td>
+          <center>
+            <?php
+              echo ($glfrt['fld_date_covered'] ? date("Y-m", strtotime($glfrt['fld_date_covered'])) : '');
+            ?>
+          </center>
+        </td>
+        <td>
+          <center>  
+
+            <?php
+            echo ($loaded_date ? date("Y-m-d", strtotime($loaded_date)) : '');
+            ?>
+            <!-- ?php
+
+              if ($gass['fld_cmpriority'] == 2) {
+                $badgeclr = "primary";
+              } elseif ($gass['fld_cmpriority'] == 3) {
+                $badgeclr = "warning";
+              } elseif ($gass['fld_cmpriority'] == 4) {
+                $badgeclr = "danger";
+              } else {
+                $badgeclr = '';
+                $hidebadge = 'hidden';
+              }
+            ?>
+            <small class="badge badge-<?php echo $badgeclr; ?>" <?php echo $hidebadge; ?>><?php echo $cmpriority[$gass['fld_cmpriority']]; ?></small> -->
+          </center>
+        </td>
+        <td>
+            
+          <center>
+            
+            <?php
+
+            if ($ticketcnt > 0) {
+              if ($ticketcnt > 1) {
+                $wrsl = 'S';
+              } else {
+                $wrsl = '';
+              }
+              echo "<button class='btn btn-warning btn-sm btn-block' disabled>PENDING TICKET".$wrsl."</button>";
+            } else {
+              if ($missed_months_percentage > 0) {
+                // echo $last_sent_logs;
+                if ($last_sent_logs != 0) {
+                  if (date("Y-m", strtotime($last_sent_logs)) == date("Y-m")) {
+                    $attrib = "hidden";
+                  } else {
+                    $attrib = "disabled";
+                  }
+                } else {
+                  $attrib = "disabled";
+                }
+
+                // echo $attrib;
+            ?>
+            <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modal-default<?php echo $gass['fld_provcode']; ?>" <?php echo $attrib; ?>>
+              <i class="fa fa-share"></i> Send LOC
+            </button>
+
+            <div class="modal fade" id="modal-default<?php echo $gass['fld_provcode']; ?>">
+              <div class="modal-dialog">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h4 class="modal-title">Confirmation..</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                  <div class="modal-body">
+                    <h5>Are you sure you want to send a Letter of Compliance to <b><?php echo $gass['fld_name']; ?></b> for their Missed Months in Transmittal?</h5>
+                  </div>
+
+                  <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="submit" value="<?php echo $gass['fld_provcode']; ?>" name="sendLocEmail" class="btn btn-primary">Yes</button>
+                  </div>
+                </div>
+                <!-- /.modal-content -->
+              </div>
+              <!-- /.modal-dialog -->
+            </div>
+            <!-- /.modal -->
+            <?php
+                if ($last_sent_logs != 0) {
+            ?>
+            <!-- <p><small>Last Sent of LOC:<br> <?php echo date("d M Y", strtotime($last_sent_logs)); ?></small></p> -->
+            <?php
+                } else {
+            ?>
+            <!-- <p><small>Last Sent: N/A</small></p> -->
+            <?php
+                }
+              } else {
+                $lftdate1 = date('Y-m-01', strtotime($glfrt['fld_date_covered']));
+                $lftdate2 = date('Y-m-d');
+
+                $lftts1 = strtotime($lftdate1);
+                $lftts2 = strtotime($lftdate2);
+
+                $lftyear1 = date('Y', $lftts1);
+                $lftyear2 = date('Y', $lftts2);
+
+                $lftmonth1 = date('m', $lftts1);
+                $lftmonth2 = date('m', $lftts2);
+
+                $lftdiff = (($lftyear2 - $lftyear1) * 12) + ($lftmonth2 - $lftmonth1);
+                if ($lftdiff > 1) {
+                  echo "<button class='btn btn-warning btn-sm'>FF Transmittal</button>";
+                }
+              }
+            }
+            ?>
+          </center>
+          
+        </td>
+        <td>
+          <center>
+            
+          </center>
+        </td>
+        <td>
+          <center>
+            <?php
+              $get_latest_remarks = $dbh4->query("SELECT * FROM tbcmsremarks WHERE fld_provcode = '".$gass['fld_provcode']."' ORDER BY fld_ts DESC LIMIT 1");
+              $glr=$get_latest_remarks->fetch_array();
+
+              echo $glr['fld_remarks'];
+            ?>    
+          </center>
+        </td>
+      </tr>
+      
+      <?php
+        }
+      ?>
+      </tbody>
+      </table>
+      <div class="col-xs-6" align="right">
+        <?php
+          if($_POST['sel_type']){
+        ?>
+          <div class="btn-group">
+          <?php
+            if($_POST['txtSearch']){
+              $srch = " AND (AES_DECRYPT(fld_provcode, md5(CONCAT(fld_ctrlno, 'RA3019'))) LIKE '%".$_POST['txtSearch']."%') OR (AES_DECRYPT(fld_name, md5(CONCAT(fld_ctrlno, 'RA3019'))) LIKE '%".$_POST['txtSearch']."%')";
+            }
+            $sqlc1=$dbh4->query("SELECT count(*) AS rcnt FROM tbentities WHERE AES_DECRYPT(fld_provcode, md5(CONCAT(fld_ctrlno, 'RA3019'))) LIKE '".$_POST['sel_type']."%'".$srch);
+            $rc=$sqlc1->fetch_array();
+
+            $next = key($_POST['navbutton']) + 20;
+            $last = ($rc['rcnt'] - ($rc['rcnt'] % 20));
+            $previous = key($_POST['navbutton']) - 20;
+            if($next > $last){
+              $ndisabled = " disabled";
+            }
+            if($previous < 0){
+              $pdisabled = " disabled";
+            }
+          ?>
+            <button type="submit" class="btn btn-default" name="navbutton[0]" value="0"<?php echo $pdisabled; ?>><< First</button>
+            <button type="submit" class="btn btn-default" name="navbutton[<?php echo $previous; ?>]" value="20"<?php echo $pdisabled; ?>>< Previous</button>
+            <button type="submit" class="btn btn-default" name="navbutton[<?php echo $next; ?>]" value="50"<?php echo $ndisabled; ?>>Next ></button>
+            <button type="submit" class="btn btn-default" name="navbutton[<?php echo $last; ?>]" value="100"<?php echo $ndisabled; ?>>Last>></button>
+          </div>
+        <?php
+          }
+        ?>
+        </div>
+    </div>
+    <!-- /.card-body -->
+    </form>
+  </div>
+  <!-- /.card -->
+
+</section>
+<!-- /.content -->

@@ -1,0 +1,249 @@
+<?php
+
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
+error_reporting(E_ALL);
+
+$getsubmissions = $dbh->query("SELECT COUNT(*) as no_submissions FROM tbprodtickets WHERE YEAR(fld_created_time) = ".date('Y')." and fld_subject LIKE '%CSDF%'");
+$gss=$getsubmissions->fetch_array();
+
+$getsubmissions->close();
+
+$getpendingsubmissionstransmittal = $dbh->query("SELECT COUNT(*) as no_submissions_wo_trans FROM tbprodtickets WHERE YEAR(fld_created_time) = ".date('Y')." and fld_subject LIKE '%CSDF%' and fld_transmittal_status = 0");
+$gpst=$getpendingsubmissionstransmittal->fetch_array();
+
+$getsubmissions->close();
+
+$getsubmittedtransmittal = $dbh4->query("SELECT COUNT(*) as no_sub_trans FROM tbtransmittal WHERE YEAR(fld_date_covered) = ".date('Y'));
+$gst=$getsubmittedtransmittal->fetch_array();
+
+$getsubmittedtransmittal->close();
+
+$gettransittalrs = $dbh4->query("SELECT COUNT(*) as no_trans_rs FROM tbtransmittal WHERE YEAR(fld_date_covered) = ".date('Y')." and fld_trans_type = 1");
+$gtrs=$gettransittalrs->fetch_array();
+
+$gettransittalrs->close();
+
+
+$filterYear = date("Y");
+
+$fullycompliantcount = 0;
+$mostlycompliantcount = 0;
+$partiallycompliantcount = 0;
+$minimallycompliantcount = 0;
+$inactivecount = 0;
+
+$get_all_sep=$dbh4->query("SELECT a.fld_ctrlno, a.fld_type, AES_DECRYPT(a.fld_provcode, md5(CONCAT(a.fld_ctrlno, 'RA3019'))) as fld_provcode, AES_DECRYPT(a.fld_name, md5(CONCAT(fld_ctrlno, 'RA3019'))) as fld_name, b.fld_referencedate FROM tbentities a LEFT JOIN tbsubmissiondetails b ON AES_DECRYPT(a.fld_provcode, md5(CONCAT(a.fld_ctrlno, 'RA3019'))) = b.fld_provcode WHERE AES_DECRYPT(a.fld_provcode, md5(CONCAT(a.fld_ctrlno, 'RA3019'))) NOT LIKE 'SAE%' and AES_DECRYPT(a.fld_provcode, md5(CONCAT(a.fld_ctrlno, 'RA3019'))) <> '' GROUP BY b.fld_provcode");
+
+while ($gap=$get_all_sep->fetch_array()) {
+  // echo $gap['fld_provcode']."<br>";
+
+  if ($gap['fld_referencedate'] and date("Y", strtotime($gap['fld_referencedate'])) == $filterYear ){
+    $date1 = $gap['fld_referencedate'];
+    $date2 = date("Y-m-d");
+
+    $ts1 = strtotime($date1);
+    $ts2 = strtotime($date2);
+
+    $year1 = date('Y', $ts1);
+    $year2 = date('Y', $ts2);
+
+    $month1 = date('m', $ts1);
+    $month2 = date('m', $ts2);
+
+    $diff = (($year2 - $year1) * 12) + ($month2 - $month1);
+  } else {
+    $date1 = $filterYear."-01-01";
+    $date2 = date("Y-m-d");
+    $diff = 7;
+  }
+
+  // echo "SELECT fld_date_covered, COUNT(*) FROM tbtransmittal WHERE (fld_date_covered >= '".date("Y-m-01", strtotime($date1))."' and fld_date_covered <= '".$date2."') and (fld_trans_type = 1 OR fld_trans_type = 5 or fld_trans_type = 6) GROUP BY DATE_FORMAT(fld_date_covered, '%Y-%m')<br>";
+
+  $get_submitted_records_by_months = $dbh4->query("SELECT fld_date_covered, COUNT(*) FROM tbtransmittal WHERE fld_provcode = '".$gap['fld_provcode']."' AND (fld_date_covered >= '".date("Y-m-01", strtotime($date1))."' and fld_date_covered <= '".$date2."') and (fld_trans_type = 1 OR fld_trans_type = 5 or fld_trans_type = 6) GROUP BY DATE_FORMAT(fld_date_covered, '%Y-%m')");
+  $gsrbm=$get_submitted_records_by_months->fetch_array();
+
+  $get_submitted_records_by_months->close();
+
+
+
+
+
+
+  // echo $gap['fld_provcode']. " " .$gap['fld_name']. " - " .$diff."<br>";
+  $rowcount = mysqli_num_rows( $get_submitted_records_by_months );
+
+  $get_submitted_records_by_months->close();
+
+  if($rowcount > $diff) {
+      $missed_months_submitted = 0;
+  } else {
+      $missed_months_submitted = $diff - $rowcount;
+  }
+
+  
+
+  if($missed_months_submitted == 0){
+    $compliance_rating = "Fully Compliant";
+    $color = "text-success";
+    $dataOrder = 'data-order = "1" ';
+    $fullycompliantcount += 1;
+    $reduction_fee = 100;
+  } elseif ($missed_months_submitted > 0 and $missed_months_submitted <= 3) {
+    $compliance_rating = "Mostly Compliant";
+    $color = "text-info";
+    $dataOrder = 'data-order = "2" ';
+    $mostlycompliantcount += 1;
+    $reduction_fee = 75;
+  } elseif($missed_months_submitted >= 4 and $missed_months_submitted <= 6){
+    $compliance_rating = "Partially Compliant";
+    $color = "text-primary";
+    $dataOrder = 'data-order = "3" ';
+    $partiallycompliantcount += 1;
+    $reduction_fee = 50;
+  } elseif ($missed_months_submitted >= 7 and $missed_months_submitted <= 9) {
+    $compliance_rating = "Minimally Compliant";
+    $color = "text-warning"; 
+    $dataOrder = 'data-order = "4" ';
+    $minimallycompliantcount += 1;
+    $reduction_fee = 25;     
+  } elseif ($missed_months_submitted > 9) {
+    $compliance_rating = "Inactive";
+    $color = "text-danger";
+    $dataOrder = 'data-order = "5" ';
+    $inactivecount += 1;
+    $reduction_fee = 0;
+  }
+}
+
+$get_all_sep->close();
+
+
+?>
+<style type="text/css">
+  .popover {
+      width: 200%;
+  }
+  .popover-content {
+    padding: 5px;
+  }
+</style>
+
+    <!-- Main content -->
+    <section class="content">
+      <!-- Info boxes -->
+      <div class="row">
+        <div class="col-md-3 col-sm-6 col-xs-12">
+          <div class="info-box">
+            <span class="info-box-icon bg-primary"><i class="ion ion-ios-people-outline"></i></span>
+
+            <div class="info-box-content">
+              <span class="info-box-text">SUBMISSIONS - <b>YTD</b></span>
+              <span class="info-box-number"><?php echo number_format($gss['no_submissions']); ?></span>
+              <!-- <a href="" data-toggle="modal" data-target="#SEIS">Click to view</a> -->
+            </div>
+            <!-- /.info-box-content -->
+          </div>
+          <!-- /.info-box -->
+        </div>
+        <!-- /.col -->
+        <div class="col-md-3 col-sm-6 col-xs-12">
+          <div class="info-box">
+            <span class="info-box-icon bg-red"><i class="ion ion-ios-people-outline"></i></span>
+
+            <div class="info-box-content">
+              <span class="info-box-text">Transmittal (Filed) - <b>YTD</b></span>
+              <span class="info-box-number"><?php echo number_format($gst['no_sub_trans']); ?></span>
+            </div>
+            <!-- /.info-box-content -->
+          </div>
+          <!-- /.info-box -->
+        </div>
+        <!-- /.col -->
+
+        <!-- fix for small devices only -->
+        <div class="clearfix visible-sm-block"></div>
+
+        <div class="col-md-3 col-sm-6 col-xs-12">
+          <div class="info-box">
+            <span class="info-box-icon bg-yellow"><i class="ion ion-ios-people-outline"></i></span>
+
+            <div class="info-box-content">
+              <span class="info-box-text">Transmittal (Pending) - <b>YTD</b></span>
+              <span class="info-box-number"><?php echo number_format($gpst['no_submissions_wo_trans']); ?></span>
+            </div>
+            <!-- /.info-box-content -->
+          </div>
+          <!-- /.info-box -->
+        </div>
+        <!-- /.col -->
+        <div class="col-md-3 col-sm-6 col-xs-12">
+          <div class="info-box">
+            <span class="info-box-icon bg-green"><i class="ion ion-ios-people-outline"></i></span>
+
+            <div class="info-box-content">
+              <span class="info-box-text">Transmittal (Regular Submissions) - <b>YTD</b></span>
+              <span class="info-box-number"><?php echo number_format($gtrs['no_trans_rs']); ?></span>
+            </div>
+            <!-- /.info-box-content -->
+          </div>
+          <!-- /.info-box -->
+        </div>
+        <!-- /.col -->
+      </div>
+      <!-- /.row -->
+
+      <div class="row">
+          <!-- Left col -->
+          <div class="col-md-8">
+            <div class="card">
+              <div class="card-header border-transparent">
+                <h3 class="card-title">Summary of Submissions</h3>
+
+              </div>
+              <!-- /.card-header -->
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table m-0">
+                    <thead>
+                    <tr>
+                      <th>Compliance Rating</th>
+                      <th>No. of SEPs</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                      <td>Fully Compliant</td>
+                      <td><?php echo number_format($fullycompliantcount); ?></td>
+                      
+                    </tr>
+                    <tr>
+                      <td>Mostly Compliant</td>
+                      <td><?php echo number_format($mostlycompliantcount); ?></td>
+                    </tr>
+                    <tr>
+                      <td>Partially Compliant</td>
+                      <td><?php echo number_format($partiallycompliantcount); ?></td>
+                    </tr>
+                    <tr>
+                      <td>Minimally Compliant</td>
+                      <td><?php echo number_format($minimallycompliantcount); ?></td>
+                    </tr>
+                    <tr>
+                      <td>Inactive</td>
+                      <td><?php echo number_format($inactivecount); ?></td>
+                    </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <!-- /.table-responsive -->
+              </div>
+              <!-- /.card-body -->
+            </div>
+            <!-- /.card -->
+          </div>
+        </div>
+
+      
+    </section>
+    <!-- /.content -->

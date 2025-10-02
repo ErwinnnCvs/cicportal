@@ -1,0 +1,583 @@
+<?php
+
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
+error_reporting(E_ALL);
+
+$selectedrating[$_POST['compliancerating']] = ' selected';
+
+$selectedenttype[$_POST['entitytype']] = ' selected';
+
+
+if (!$_POST['ctnlaActualType']) {
+  $_POST['ctnlaActualType'] = 'all';
+}
+
+if(!$_POST['transType']){
+  $_POST['transType'] = 1;
+}
+?>
+
+    <!-- Main content -->
+    <!-- Main content -->
+<section class="content">
+
+    <!-- Default box -->
+    <div class="card">
+    <div class="card-header">
+        <h3 class="card-title">2023 CAF</h3>
+    </div>
+    <div class="card-body">
+    <form method="POST">
+    <div class="row">
+
+      <div class="col-3">
+          <div class="form-group"> 
+              <label class="col-form-label" for="entitytype">Entity Type</label>
+              <select class="form-control select2" name="entitytype" id="entitytype" onchange="submit()">
+                <option value="all" selected>All</option>
+                <?php
+              
+                  $start = date($filterYear."-01");
+                  $end = date($filterYear."-12-");
+                  $transType = $_POST['transType'];
+                  $filterYear = "2023";
+                  
+                  if(isset($_POST['transType'])){
+                    $transType = $_POST['transType'];
+                  } 
+                    if(isset($_POST['filterYear'])){
+                      $filterYear = $_POST['filterYear'];
+                  } 
+
+
+                    $entity_type = $dbh4->query("SELECT * FROM tbenttypes;");
+                  while($et=$entity_type->fetch_array()){
+                ?>
+                <option value="<?php echo $et['fld_type']; ?>"<?php echo $selectedenttype[$et['fld_type']]; ?>><?php echo $et['fld_name']; ?></option>
+                <?php
+                  }
+                ?>
+              </select>
+          </div>
+      </div>
+
+      
+    <!--  <div class="col-lg-3">
+            <div class="form-group">
+                <label class="col-form-label">Filter Submission Type</label>
+          
+                    <select class="custom-select transType" name="transType" id="transType" onchange="submit()"  value="<?php echo $_POST['transType']?>">
+                        <option value="1" selected=""  <?php if($_POST['transType'] == 1){echo "selected='selected'";}  ?>>Regular Submission</option>
+                        <option value="5" <?php if($_POST['transType'] == 5){echo "selected='selected'";} ?>>Extended Regular Submission</option>
+                        <option value="6" <?php if($_POST['transType'] == 6){echo "selected='selected'";} ?>>Special Submission - Late Submission</option>
+                        <option value="2" <?php if($_POST['transType'] == 2){echo "selected='selected'";} ?>>Special Submission - Correction File</option>
+                        <option value="3" <?php if($_POST['transType'] == 3){echo "selected='selected'";} ?>>Special Submission - Dispute</option>
+                        <option value="4" <?php if($_POST['transType'] == 4){echo "selected='selected'";} ?>>Special Submission - Historical Data</option>
+                        
+                    </select>
+            </div>
+        </div> -->
+
+
+        <div class="col-lg-3">
+            <div class="form-group">
+                <label class="col-form-label">Filter Record Type</label>
+          
+                    <select class="custom-select ctnlaActualType" name="ctnlaActualType" id="ctnlaActualType" onchange="submit()"  value="<?php echo $_POST['ctnlaActualType']?>">
+                        <!-- <option value=""  disabled="">Select Submission Type</option> -->
+                        <option value="all"  <?php if($_POST['ctnlaActualType'] == "all"){echo "selected='selected'";}  ?>>All</option>
+                        <option value="actual"  <?php if($_POST['ctnlaActualType'] == "actual"){echo "selected='selected'";}  ?>>Transmittal</option>
+                        <option value="ctnla" <?php if($_POST['ctnlaActualType'] == "ctnla"){echo "selected='selected'";} ?>>CTNLA</option>
+                        
+                    </select>
+            </div>
+        </div>
+        
+        <?php 
+
+        //  $te = date("2023");
+        //  $te=date("Y",strtotime($i."+1 year"));
+        //  echo   $te;
+     
+        ?>
+<!-- 
+        <div class="col-lg-2">
+            <div class="form-group">
+                <label class="col-form-label">Filter Year</label>
+          
+                <select class="custom-select filterYear" name="filterYear" id="filterYear" onchange="submit()"  value="<?php echo $_POST['filterYear']?>">
+                                  <option>Selected Year:<?php if(isset($_POST['filterYear'])){print_r($_POST['filterYear']);}else{print_r(date("Y"));} ?></option>
+                                    <?php
+                                    
+                                        $y=(int)date('Y');
+                                        ?>
+                                        <option value="<?php echo $y;?>" ><?php echo $y;?></option>
+                                            <?php
+                                            $y--;
+                                        for(; $y>'2022'; $y--)
+                                        {
+                                    ?>
+                                    <option value="<?php echo $y;?>"><?php echo $y;?></option>
+                                    <?php }?>
+                                </select>
+            </div>
+        </div> -->
+
+      <div class="col-2">
+        <div class="form-group pt-2">
+          <br>
+          <a href="main.php?nid=129&sid=0&rid=0" class="btn btn-secondary">Clear Filter</a>
+          </div>
+            
+      </div>
+      
+      </div>
+
+      <?php
+        if($_POST['ctnlaActualType'] != "ctnla"){
+      ?>
+      <div class="row">
+        <div class="col-3">
+          <div class="form-group">
+            <label for="compliancerating">Compliance Rating</label>
+              <select class="form-control" name="compliancerating" id="compliancerating" onchange="submit()">
+                <option value="all" selected>All</option>
+                <?php
+                  $compliance_ratings = array(
+                    "fullycompliant"=>"Fully Compliant",
+                    "mostlycompliant"=>"Mostly Compliant",
+                    "partiallycompliant"=>"Partially Compliant",
+                    "minimallycompliant"=>"Minimally Compliant",
+                    "inactive"=>"Inactive",
+                  );
+                  foreach($compliance_ratings as $k=>$v){
+                ?>
+                <option value="<?php echo $k; ?>"<?php echo $selectedrating[$k]; ?>><?php echo $v; ?></option>
+                <?php
+                  }
+                ?>
+              </select>
+          </div>
+        </div>
+      </div>
+      <?php
+        }
+      ?>
+      
+
+    </form>
+    
+    
+    <br><br>
+          <?php
+          $c = 0;
+          echo "<table class='table table-bordered table-hover table-sm dataTable dtr-inline' id='caftable'>";
+          echo "<thead>";
+          echo "<tr><th bgcolor='#ffffff'>Provider Code</th><th bgcolor='#ffffff'>Company</th><th bgcolor='#ffffff'>Entity Type</th>";
+          echo "<th><center>Date Onboarded</center></th>";
+          echo "<th><center>Missed Months</center></th>";
+          echo "<th><center>Compliance Rating</center></th>";
+          echo "<th><center>Record Type</center></th>";
+          echo "<th><center>Average Submission Count</center></th>";
+          echo "<th><center>Flat Rate</center></th>";
+          echo "<th><center>Excess of 100k</center></th>";
+          echo "<th><center>Variable Rate</center></th>";
+          echo "<th><center>Gross CAF</center></th>";
+          echo "<th><center>Reduction Rate</center></th>";
+          echo "<th><center>NET CAF</center></th>";
+          
+          // echo "<th><center>Excess Fee</center></th>";
+          echo "</tr>";
+          echo "</thead>";
+          echo "<tbody>";
+
+          if($_POST['entitytype'] != "all" and $_POST['entitytype']){
+            $query = " AND (a.fld_type = '".$_POST['entitytype']."' OR AES_DECRYPT(a.fld_provcode, md5(CONCAT(fld_ctrlno, 'RA3019'))) LIKE '%".$_POST['entitytype']."%' OR a.fld_secondary_type = '".$_POST['entitytype']."')";
+          } else {
+            $query = "";
+          }
+
+          $comrating = array();
+
+          $get_all_seps_sub=$dbh4->query("SELECT a.fld_ctrlno, a.fld_type, AES_DECRYPT(a.fld_provcode, md5(CONCAT(a.fld_ctrlno, 'RA3019'))) as fld_provcode, AES_DECRYPT(a.fld_name, md5(CONCAT(fld_ctrlno, 'RA3019'))) as fld_name FROM tbentities a RIGHT JOIN tbsep b ON AES_DECRYPT(a.fld_provcode, md5(CONCAT(a.fld_ctrlno, 'RA3019'))) = b.fld_provcode  WHERE a.fld_registration_type <> 1".$query." OR (a.fld_registration_type = 1 AND a.fld_noc_pass_status = 1".$query." )");
+          while ($gass=$get_all_seps_sub->fetch_array()) {
+            if($_POST['compliancerating'] == 'all' || !$_POST['compliancerating'] || empty($_POST['compliancerating'])){
+              array_push($comrating, $gass['fld_ctrlno']);
+              reset($comrating);
+            } else {
+              
+              $get_submitted_records_by_months = $dbh4->query("SELECT fld_date_covered, COUNT(*) FROM tbtransmittal WHERE fld_provcode = '".$gass['fld_provcode']."' and fld_date_covered LIKE '2023%' and fld_trans_type = ".$_POST['transType']." GROUP BY DATE_FORMAT(fld_date_covered, '%Y-%m')");
+              $gsrbm=$get_submitted_records_by_months->fetch_array();
+              reset($comrating);
+              $rowcount = mysqli_num_rows( $get_submitted_records_by_months );
+
+              $missed_months_submitted = 12 - $rowcount;
+
+              if($missed_months_submitted == 0 and $_POST['compliancerating'] == 'fullycompliant'){
+                array_push($comrating, $gass['fld_ctrlno']);
+
+              } elseif ($missed_months_submitted > 0 and $missed_months_submitted <= 3 and $_POST['compliancerating'] == 'mostlycompliant') {
+                array_push($comrating, $gass['fld_ctrlno']);
+              } elseif($missed_months_submitted >= 4 and $missed_months_submitted <= 6 and $_POST['compliancerating'] == 'partiallycompliant'){
+                array_push($comrating, $gass['fld_ctrlno']);
+              } elseif ($missed_months_submitted >= 7 and $missed_months_submitted <= 9 and $_POST['compliancerating'] == 'minimallycompliant') {
+                array_push($comrating, $gass['fld_ctrlno']);
+              } elseif ($missed_months_submitted > 9 and $_POST['compliancerating'] == 'inactive') {
+                array_push($comrating, $gass['fld_ctrlno']);
+              } else {
+
+              }
+            }
+          }
+
+          // print_r($comrating);
+
+          $transType = $_POST['transType'];
+
+          if(isset($_POST['transType'])){
+              $transType = $_POST['transType'];
+          }
+
+          $total_caf = 0;
+          $total_gross_caf = 0;
+          $total_submission_count = 0;
+          $total_excess = 0;
+          $total_variable_rate = 0;
+
+
+          $get_all_sep=$dbh4->query("SELECT a.fld_ctrlno, a.fld_type, AES_DECRYPT(a.fld_provcode, md5(CONCAT(a.fld_ctrlno, 'RA3019'))) as fld_provcode, AES_DECRYPT(a.fld_name, md5(CONCAT(fld_ctrlno, 'RA3019'))) as fld_name, b.fld_date FROM tbentities a LEFT JOIN tbsep b ON AES_DECRYPT(a.fld_provcode, md5(CONCAT(a.fld_ctrlno, 'RA3019'))) = b.fld_provcode  WHERE a.fld_ctrlno IN (".implode(",", $comrating).") and a.fld_registration_type <> 1".$query." OR a.fld_ctrlno IN (".implode(",", $comrating).") and (a.fld_registration_type = 1 AND a.fld_noc_pass_status = 1".$query." )");
+
+          while($gap=$get_all_sep->fetch_array()){
+
+              $c++;
+
+              if ($gap['fld_date'] and date("Y", strtotime($gap['fld_date'])) == 2023 ){
+                $date1 = $gap['fld_date'];
+              $date2 = '2023-12-31';
+
+              $ts1 = strtotime($date1);
+              $ts2 = strtotime($date2);
+
+              $year1 = date('Y', $ts1);
+              $year2 = date('Y', $ts2);
+
+              $month1 = date('m', $ts1);
+              $month2 = date('m', $ts2);
+
+              $diff = (($year2 - $year1) * 12) + ($month2 - $month1);
+              } else {
+                $date1 = "2023-01-01";
+                $date2 = '2023-12-31';
+                $diff = 12;
+              }
+
+                // echo "SELECT fld_date_covered, COUNT(*) FROM tbtransmittal WHERE fld_provcode = '".$gap['fld_provcode']."' and (fld_date_covered >= '".date("Y-m-01", strtotime($date1))."' and fld_date_covered <= '".$date2."') and fld_trans_type = ".$_POST['transType']." GROUP BY DATE_FORMAT(fld_date_covered, '%Y-%m')<br>";
+              $get_submitted_records_by_months = $dbh4->query("SELECT fld_date_covered, COUNT(*) FROM tbtransmittal WHERE fld_provcode = '".$gap['fld_provcode']."' and (fld_date_covered >= '".date("Y-m-01", strtotime($date1))."' and fld_date_covered <= '".$date2."') and fld_trans_type = ".$_POST['transType']." GROUP BY DATE_FORMAT(fld_date_covered, '%Y-%m')");
+              $gsrbm=$get_submitted_records_by_months->fetch_array();
+
+
+              
+              
+
+              // echo $gap['fld_provcode']. " " .$gap['fld_name']. " - " .$diff."<br>";
+
+
+              $rowcount = mysqli_num_rows( $get_submitted_records_by_months );
+
+
+              // echo "DIFF: ".$diff. "; ROWCOUNT: ".$rowcount. "; SE NAME: ".$gap['fld_name']."<br>"; 
+
+              if($rowcount > $diff) {
+                  $missed_months_submitted = 0;
+              } else {
+                  $missed_months_submitted = $diff - $rowcount;
+              }
+              if($missed_months_submitted == 0){
+                $compliance_rating = "Fully Compliant";
+                $color = "text-success";
+                $dataOrder = 'data-order = "1" ';
+                $reduction_fee = 100;
+              } elseif ($missed_months_submitted > 0 and $missed_months_submitted <= 3) {
+                $compliance_rating = "Mostly Compliant";
+                $color = "text-info";
+                $dataOrder = 'data-order = "2" ';
+                $reduction_fee = 75;
+              } elseif($missed_months_submitted >= 4 and $missed_months_submitted <= 6){
+                $compliance_rating = "Partially Compliant";
+                $color = "text-primary";
+                $dataOrder = 'data-order = "3" ';
+                $reduction_fee = 50;
+              } elseif ($missed_months_submitted >= 7 and $missed_months_submitted <= 9) {
+                $compliance_rating = "Minimally Compliant";
+                $color = "text-warning"; 
+                $dataOrder = 'data-order = "4" ';
+                $reduction_fee = 25;     
+              } elseif ($missed_months_submitted > 9) {
+                $compliance_rating = "Inactive";
+                $color = "text-danger";
+                $dataOrder = 'data-order = "5" ';
+                $reduction_fee = 0;
+              } else {
+                // echo $rowcount."<br>";
+                $compliance_rating = "N/A";
+                // $color = "text-success";
+                $dataOrder = 'data-order = "1" ';
+                // $reduction_fee = 100;
+              }
+
+
+              
+
+              $get_submitted_records = $dbh4->query("SELECT AVG(fld_total_contracts + fld_total_subjects) as AVERAGE_SUBMITTED_RECORDS FROM tbtransmittal WHERE fld_provcode = '".$gap['fld_provcode']."' and fld_date_covered > '".date("Y-m-01", strtotime($date1))."' and fld_trans_type = ".$_POST['transType']." GROUP BY fld_provcode;");
+              $gsr=$get_submitted_records->fetch_array();
+
+              if($gsr['AVERAGE_SUBMITTED_RECORDS'] && $_POST['ctnlaActualType'] == 'actual' || $_POST['ctnlaActualType'] == 'all'){
+              // $fd_month = date("Y-m" ,strtotime($r1['fld_created_time']));
+              echo "<tr>
+              <td bgcolor='#ffffff'>".$gap['fld_provcode']."</td><td bgcolor='#ffffff'>".$gap['fld_name']."</td><td bgcolor='#ffffff'>".$gap['fld_type']."</td>";
+              $counter = 0;
+              $submittedrecordcount = 0;
+
+              $average_submitted_count = $gsr['AVERAGE_SUBMITTED_RECORDS'];
+
+              $total_ctnla = $dbh4->query("SELECT AES_DECRYPT(fld_name, md5(CONCAT(fld_ctrlno, 'RA3019'))) as Company, fld_numacct_indv, fld_numacct_comp, fld_numacct_inst, fld_numacct_noninst, fld_numacct_cc, fld_numacct_util FROM tbentities 
+              WHERE AES_DECRYPT(fld_provcode, md5(CONCAT(fld_ctrlno, 'RA3019'))) = '".$gap['fld_provcode']."' AND (fld_numacct_indv > 0 or fld_numacct_comp > 0 or fld_numacct_inst > 0 or fld_numacct_noninst > 0 or fld_numacct_cc > 0 or fld_numacct_util > 0);");
+
+              $tctnla=$total_ctnla->fetch_array();
+
+              $total_ctnla = $tctnla['fld_numacct_indv'] + $tctnla['fld_numacct_comp'] + $tctnla['fld_numacct_inst'] + $tctnla['fld_numacct_noninst'] + $tctnla['fld_numacct_cc'] + $tctnla['fld_numacct_util'];
+
+              if($_POST['compliancerating']){
+                $selected_rating = $_POST['compliancerating'];
+              }
+
+              $caf_fee = 200000;
+
+
+              // for ($m=date($filterYear."-01"); $m<=date($filterYear."-12"); $m=date("Y-m",strtotime($m."+1 month"))) {
+              //   $month_check = $m;
+              
+              //   $sql2=$dbh4->query("SELECT COUNT(*) AS rcnt FROM tbtransmittal WHERE fld_provcode = '".$gap['fld_provcode']."' and fld_date_covered LIKE '".$month_check."%' and fld_trans_type = '".$transType ."' ");
+
+              //   $r2=$sql2->fetch_array();
+             
+              //   if($r2['rcnt'] > 0){
+              //   } else {
+              //     $counter++;
+              //   }
+               
+                
+              // }
+
+
+              $missed_months = 12 - $counter;
+
+                
+
+              
+
+              if($average_submitted_count > 0) {
+                $ctnla_label = "TRANSMITTAL";
+                $cntla_color = "";
+                $submitted_count = $average_submitted_count; 
+              } else {
+                $ctnla_label = "CTNLA";
+                $cntla_color = "text-danger";
+                $submitted_count = $total_ctnla;
+              }
+
+              if($submitted_count > 100000){
+                $excess_record = $submitted_count - 100000;
+                $variable_rate = $excess_record * 0.25;
+              } else {
+                $excess_record = 0;
+                $variable_rate = 0;
+              }
+
+              $gross_caf = $caf_fee + $variable_rate;
+
+
+              $total_gross_caf += $gross_caf;
+              $new_fee = $gross_caf * ((100-$reduction_fee) / 100);
+
+              $total_caf += $new_fee;
+
+              $total_submission_count += $submitted_count;
+
+              $total_excess += $excess_record;
+              $total_variable_rate += $variable_rate;
+
+              if($gap['fld_date'] != '0000-00-00'){
+                $date_onboarded = $gap['fld_date'];
+              } else {
+                $date_onboarded = 'NA';
+              }
+
+              echo "<td><center>".$date_onboarded."</center></td>";
+              echo "<td class='$color'><center>".$missed_months_submitted."</center></td>";
+              echo "<td class='$color'><center>".$compliance_rating."</center></td>";
+              echo "<td class='$cntla_color'><center>".$ctnla_label."</center></td>";
+              echo "<td class='' style='text-align: right;'>".number_format($submitted_count)."</td>";
+              echo "<td class='' style='text-align: right;'>".number_format($caf_fee)."</td>";
+              echo "<td class='' style='text-align: right;'>".number_format(round($excess_record))."</td>";
+              echo "<td class='' style='text-align: right;'>".number_format($variable_rate)."</td>";
+              echo "<td class='' style='text-align: right;'>".number_format($gross_caf)."</td>";
+              echo "<td class='' style='text-align: right;'>".$reduction_fee."%</td>";
+              echo "<td class='' style='text-align: right;'>".number_format($new_fee)."</td>";
+
+              
+              
+              
+            echo "</tr>";
+          } elseif (!$gsr['AVERAGE_SUBMITTED_RECORDS'] and $_POST['ctnlaActualType'] == 'ctnla' || $_POST['ctnlaActualType'] == 'all') {
+            // $fd_month = date("Y-m" ,strtotime($r1['fld_created_time']));
+              echo "<tr>
+              <td bgcolor='#ffffff'>".$gap['fld_provcode']."</td><td bgcolor='#ffffff'>".$gap['fld_name']."</td><td bgcolor='#ffffff'>".$gap['fld_type']."</td>";
+              $counter = 0;
+              $submittedrecordcount = 0;
+
+              $average_submitted_count = $gsr['AVERAGE_SUBMITTED_RECORDS'];
+
+              $total_ctnla = $dbh4->query("SELECT AES_DECRYPT(fld_name, md5(CONCAT(fld_ctrlno, 'RA3019'))) as Company, fld_numacct_indv, fld_numacct_comp, fld_numacct_inst, fld_numacct_noninst, fld_numacct_cc, fld_numacct_util FROM tbentities 
+              WHERE AES_DECRYPT(fld_provcode, md5(CONCAT(fld_ctrlno, 'RA3019'))) = '".$gap['fld_provcode']."' AND (fld_numacct_indv > 0 or fld_numacct_comp > 0 or fld_numacct_inst > 0 or fld_numacct_noninst > 0 or fld_numacct_cc > 0 or fld_numacct_util > 0);");
+
+              $tctnla=$total_ctnla->fetch_array();
+
+              $total_ctnla = $tctnla['fld_numacct_indv'] + $tctnla['fld_numacct_comp'] + $tctnla['fld_numacct_inst'] + $tctnla['fld_numacct_noninst'] + $tctnla['fld_numacct_cc'] + $tctnla['fld_numacct_util'];
+
+              // for ($m=date($filterYear."-01"); $m<=date($filterYear."-12"); $m=date("Y-m",strtotime($m."+1 month"))) {
+              //   $month_check = $m;
+
+              //   $sql2=$dbh4->query("SELECT COUNT(*) AS rcnt FROM tbtransmittal WHERE fld_provcode = '".$gap['fld_provcode']."' and fld_date_covered LIKE '".$month_check."%' and fld_trans_type = '".$transType ."' ");
+
+              //   $r2=$sql2->fetch_array();
+             
+              //   if($r2['rcnt'] > 0){
+              //   } else {
+              //     $counter++;
+              //   }
+               
+                
+              // }
+
+                $missed_months = 12 - $counter;
+
+                if($counter == 0){
+                      $compliance_rating = "Fully Compliant";
+                      $color = "text-success";
+                      $dataOrder = 'data-order = "1" ';
+                      $reduction_fee = 100;
+                    } elseif ($counter > 0 and $counter <= 3) {
+                      $compliance_rating = "Mostly Compliant";
+                      $color = "text-info";
+                      $dataOrder = 'data-order = "2" ';
+                      $reduction_fee = 75;
+                    } elseif($counter >= 4 and $counter <= 6){
+                      $compliance_rating = "Partially Compliant";
+                      $color = "text-primary";
+                      $dataOrder = 'data-order = "3" ';
+                      $reduction_fee = 50;
+                    } elseif ($counter >= 7 and $counter <= 9) {
+                      $compliance_rating = "Minimally Compliant";
+                      $color = "text-warning"; 
+                      $dataOrder = 'data-order = "4" ';
+                      $reduction_fee = 25;     
+                    } elseif ($counter > 9) {
+                      $compliance_rating = "Inactive";
+                      $color = "text-danger";
+                      $dataOrder = 'data-order = "5" ';
+                      $reduction_fee = 0;
+                    } else {
+                      $compliance_rating = "N/A";
+                      $color = "text-muted";
+                      $dataOrder = 'data-order = "6" ';
+                      $reduction_fee = 0;
+                    }
+
+              $caf_fee = 200000;
+
+              if($average_submitted_count > 0) {
+                $ctnla_label = "TRANSMITTAL";
+                $cntla_color = "";
+                $submitted_count = $average_submitted_count; 
+              } else {
+                $ctnla_label = "CTNLA";
+                $cntla_color = "text-danger";
+                $submitted_count = $total_ctnla;
+              }
+
+              if($submitted_count > 100000){
+                $excess_record = $submitted_count - 100000;
+                $variable_rate = $excess_record * 0.25;
+              } else {
+                $excess_record = 0;
+                $variable_rate = 0;
+              }
+
+              $gross_caf = $caf_fee + $variable_rate;
+
+
+              $total_gross_caf += $gross_caf;
+              $new_fee = $gross_caf * ((100-$reduction_fee) / 100);
+
+              $total_caf += $new_fee;
+              $total_submission_count += $submitted_count;
+              $total_excess += $excess_record;
+              $total_variable_rate += $variable_rate;
+
+              echo "<td class='$color'><center>".$missed_months_submitted."</center></td>";
+              echo "<td class='$color'><center>".$compliance_rating."</center></td>";
+              echo "<td class='$cntla_color'><center>".$ctnla_label."</center></td>";
+              echo "<td class='' style='text-align: right;'>".number_format($submitted_count)."</td>";
+              echo "<td class='' style='text-align: right;'>".number_format($caf_fee)."</td>";
+              echo "<td class='' style='text-align: right;'>".number_format(round($excess_record))."</td>";
+              echo "<td class='' style='text-align: right;'>".number_format(round($variable_rate))."</td>";
+              echo "<td class='' style='text-align: right;'>".number_format($gross_caf)."</td>";
+              echo "<td class='' style='text-align: right;'>".$reduction_fee."%</td>";
+              echo "<td class='' style='text-align: right;'>".number_format($new_fee)."</td>";
+
+              
+              
+              
+            echo "</tr>";
+          }
+            
+          }
+          echo "</tbody>";
+          echo "</table>";
+          
+          // echo "<h2>TOTAL NET CAF: ".number_format($total_caf, 2)."</h2>";
+
+
+          echo "<table class='table table-bordered table-sm dataTable dtr-inline'";
+          echo "<thead>";
+          echo "<th><center>TOTAL Average Submission Count</center></th>";
+          echo "<th><center>TOTAL Excess of 100k</center></th>";
+          echo "<th><center>TOTAL Variable Rate</center></th>";
+          echo "<th><center>TOTAL Gross CAF</center></th>";
+          echo "<th><center>TOTAL NET CAF</center></th>";
+          
+          // echo "<th><center>Excess Fee</center></th>";
+          echo "</tr>";
+          echo "</thead>";
+          echo "<tbody>";
+          echo "<tr>";
+          echo "<td class='' style='text-align: right;'><center><b>".number_format($total_submission_count)."</center></b></td>";
+          echo "<td class='' style='text-align: right;'><center><b>".number_format($total_excess)."</center></b></td>";
+          echo "<td class='' style='text-align: right;'><center>PHP <b>".number_format($total_variable_rate)."</center></b></td>";
+          echo "<td class='' style='text-align: right;'><center>PHP <b>".number_format($total_gross_caf)."</center></b></td>";
+          echo "<td class='' style='text-align: right;'><center>PHP <b>".number_format($total_caf)."</center></b></td>";
+          echo "</tr>";
+          echo "</tbody>";
+          echo "</table>";
+
+          ?>
+        </div>
+        <!-- /.box-body -->
+      </div>
+      <!-- /.box -->
+
+    </section>
+    <!-- /.content -->
+  

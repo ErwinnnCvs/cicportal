@@ -1,0 +1,211 @@
+<?php
+require_once 'config.php';
+
+class AuthDB {
+	private $_db;
+
+	public function __construct() {
+		$this->_db = new mysqli(DB_SERVER, DB_USER, DB_PASS, "cicportal")
+		or die("Problem connect to db. Error: ". mysqli_error());
+	}
+
+	public function __destruct() {
+		$this->_db->close();
+		unset($this->_db);
+	}
+
+	public function createSAEUser($email, $password, $salt, $verification, $active, $admin, $code, $name, $status, $ctrlno, $provcode) {
+		$query = "INSERT INTO tbsaeusers (email, password, user_salt, is_verified, is_active, is_admin, verification_code, fld_name, fld_status, fld_ctrlno, fld_provcode) "
+		. "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+		$stmt = $this->_db->prepare($query);
+
+		$stmt->bind_param("sssiiississ", $email, $password, $salt, $verification, $active, $admin, $code, $name, $status, $ctrlno, $provcode);
+
+		if ($stmt->execute()) {
+			return true;
+		}
+
+		return false;
+	}
+
+	public function createUser($email, $password, $salt, $verification, $name, $access) {
+		$query = "INSERT INTO tbcicusers (email, password, user_salt, is_verified, is_active, is_admin, verification_code, fld_office, fld_name, fld_image) "
+		. "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+		$stmt = $this->_db->prepare($query);
+
+		$ver = 1;
+		$act = 1;
+		$adm = $access;
+		$off = 0;
+		$img = "img_499.jpg";
+
+		$stmt->bind_param("sssiiissss", $email, $password, $salt, $ver, $act, $adm, $verification, $off, $name, $img);
+
+		if ($stmt->execute()) {
+#		echo "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+#		."&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+#		."&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+#		."&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;".$email.", ".$password.", ".$salt.", ".$ver.", ".$act.", ".$adm.", ".$verification.", ".$off.", ".$name;
+			return true;
+		}
+
+		return false;
+	}
+
+	public function getUserInfo($email) {
+		//query
+
+		$query = "SELECT pkUserId, user_salt, password, is_active, is_verified, fld_name, fld_image, fld_office, is_admin FROM tbcicusers where email = ? and is_active = 1";
+
+		//prepare the statement
+		$stmt = $this->_db->prepare($query);
+
+		//bind parameters
+		$stmt->bind_param("s", $email);
+		//execute statements
+		if ($stmt->execute()) {
+			//bind result columnts
+			$stmt->bind_result($id, $salt, $pass, $active, $ver, $name, $image, $office, $usertype);
+			
+			//fetch first row of results
+			$stmt->fetch();
+
+			//place results into new array
+			$array = array();
+			$array[] = array('pkUserId' => $id, 'user_salt' => $salt, 'password' => $pass, 'is_active' => $active, 'is_verified' => $ver, 'fld_name' => $name, 'fld_image' => $image, 'fld_office' => $office, 'is_admin' => $usertype);
+			
+			//return array
+			return $array;
+		}
+	}
+
+	public function removePriorLogins($userId) {
+		$query = "DELETE FROM tbcicloggedinusers where fkUserId = ?";
+
+		$stmt = $this->_db->prepare($query);
+
+		$stmt->bind_param("i", $userId);
+
+		if ($stmt->execute()) {
+			return true;
+		}
+
+		return false;
+	}
+
+	public function markUserLoggedIn($userId, $session, $token) {
+		$query = "INSERT INTO tbcicloggedinusers (fkUserId, session_id, token, lastUpdate) VALUES (?, ?, ?, NOW())";
+
+		$stmt = $this->_db->prepare($query);
+
+		$stmt->bind_param("iss", $userId, $session, $token);
+
+		if ($stmt->execute()) {
+			return true;
+		}
+
+		return false;
+	}
+	
+	public function checkSession($userId) {
+		$query = "SELECT session_id, token FROM tbcicloggedinusers where fkUserId = ?";
+
+		$stmt = $this->_db->prepare($query);
+		
+		$stmt->bind_param("i", $userId);
+		
+		if ($stmt->execute()) {
+			$stmt->bind_result($sessionId, $token);
+			$stmt->fetch();
+			return array('session_id' => $sessionId, 'token' => $token);
+		}
+	}
+	
+	public function updateSession($userId, $session, $token) {
+		$query = "UPDATE tbcicloggedinusers SET session_id = ?, token = ?, lastUpdate = NOW() where fkUserId = ?";
+		
+		$stmt = $this->_db->prepare($query);
+		
+		$stmt->bind_param("ssi", $session, $token, $userId);
+		
+		if ($stmt->execute()) {
+			return true;
+		}
+		
+		return false;
+	}
+	
+	public function logoutUser($user_id) {
+		$query = "DELETE FROM tbcicloggedinusers WHERE fkUserId = ?";
+		
+		$stmt = $this->_db->prepare($query);
+		
+		$stmt->bind_param("i", $user_id);
+		
+		if ($stmt->execute()) {
+			return true;
+		}
+		
+		return false;
+	}
+	
+	public function checkVerification($email, $code) {
+		$query = "UPDATE tbcicusers SET is_verified = 1, is_active = 1 WHERE email = ? and verification_code = ?"; 
+
+		$stmt = $this->_db->prepare($query);
+		
+		$stmt->bind_param("ss", $email, $code);
+		
+		if ($stmt->execute()) {
+			return $stmt->affected_rows;
+		}
+		
+		return 0;
+	}
+	
+	public function retrieveCode($email) {
+		$query = "SELECT verification_code FROM tbcicusers WHERE email = ?";
+		
+		$stmt = $this->_db->prepare($query);
+		
+		$stmt->bind_param("s", $email);
+		
+		if ($stmt->execute()) {
+			$stmt->bind_result($code);
+			$stmt->fetch();
+			return $code;
+		}
+		
+		return false;
+	}
+	
+	public function newPassword($email, $password, $salt) {
+		$query = "UPDATE tbcicusers SET password = ?, user_salt = ? WHERE email = ?";
+		
+		$stmt = $this->_db->prepare($query);
+		
+		$stmt->bind_param("sss", $password, $salt, $email);
+		
+		if ($stmt->execute()) {
+			return $stmt->affected_rows;
+		}
+		
+		return -1;
+	}
+	
+	public function updatePassword($userId, $password, $salt) {
+		$query = "UPDATE tbcicusers SET password = ?, user_salt = ? WHERE pkUserId = ?";
+	
+		$stmt = $this->_db->prepare($query);
+	
+		$stmt->bind_param("ssi", $password, $salt, $userId);
+	
+		if ($stmt->execute()) {
+			return $stmt->affected_rows;
+		}
+	
+		return -1;
+	}
+}

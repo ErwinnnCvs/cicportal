@@ -1,0 +1,246 @@
+<?php
+date_default_timezone_set('Asia/Manila'); 
+
+$searchsel[$_POST['searchEntity']] = " selected";
+
+$filteryearsel[$_POST['filterYear']] = " selected";
+
+
+
+?>
+
+<!-- Main content -->
+<section class="content">
+
+  <!-- Default box -->
+  <div class="card">
+    <div class="card-header">
+      <div class="input-group-prepend">
+          <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+            Single
+          </button>
+          <ul class="dropdown-menu">
+            <a href="main.php?nid=144&sid=0&rid=0"><li class="dropdown-item">Single</li></a>
+            <a href="main.php?nid=144&sid=1&rid=0"><li class="dropdown-item">List By Type</li></a>
+          </ul>
+        </div>
+    </div>
+    <div class="card-body">
+      <form method="POST">
+        <div class="row">
+          <div class="col-md-4">
+            <div class="form-group" data-select2-id="29">
+              <label>Search Entity</label>
+              <select class="form-control select2" name="searchEntity" style="width: 100%;" data-select2-id="1" tabindex="-1" aria-hidden="true" onchange="submit()">
+                <option selected disabled>----- SELECT -----</option>
+                <?php
+
+                  $get_all_entities = $dbh4->query("SELECT fld_providercode, fld_company_name  FROM tbentities WHERE fld_providercode <> ''");
+                  while ($gae=$get_all_entities->fetch_array()) {
+                ?>
+                <option value="<?php echo $gae['fld_providercode']; ?>"<?php echo $searchsel[$gae['fld_providercode']]; ?>><?php echo $gae['fld_providercode']. " - " .$gae['fld_company_name'] ?></option>
+                <?php
+                  }
+                ?>
+              </select>
+            </div>
+
+            <div class="form-group" data-select2-id="29">
+              <label>Filter by Year</label>
+              <select class="form-control" name="filterYear" style="width: 100%;" data-select2-id="1" tabindex="-1" aria-hidden="true" onchange="submit()">
+                <option selected disabled>----- SELECT -----</option>
+                <?php
+                  $firstYear = 2023;
+                  $lastYear = date('Y');
+                  for($i=$firstYear;$i<=$lastYear;$i++)
+                  {
+                ?>
+                <option value="<?php echo $i; ?>"<?php echo $filteryearsel[$i]; ?>><?php echo $i; ?></option>
+                <?php
+                  }
+                ?>
+              </select>
+            </div>
+          </div>
+        </div>
+      </form>
+      
+      <?php
+
+        if ($_POST['searchEntity'] and $_POST['filterYear']) {
+          $get_company = $dbh4->query("SELECT fld_company_name FROM tbentities WHERE fld_providercode = '".$_POST['searchEntity']."'");
+          $gc=$get_company->fetch_array();
+      ?>
+      <h3 class="card-header"><?php echo $_POST['searchEntity']. " - " .$gc['fld_company_name']; ?>  <?php echo $_POST['filterYear']; ?> Transmittal</h3>
+      <table class="table table-bordered table-hover">
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th style="text-align: right;">Regular Submission</th>
+            <th style="text-align: right;">Regular Submission - Delayed</th>
+            <th style="text-align: right;">Regular Submission - Extended</th>
+            <th style="text-align: right;">Regular Submission - Lapsed</th>
+            <th style="text-align: right;">Historical Data</th>
+            <th style="text-align: right;">Correction File</th>            
+            <th style="text-align: right;">Dispute File</th>
+
+            <th style="text-align: right;">Total Files Submitted</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php
+
+            if ($_POST['filterYear'] == date("Y")) {
+              $prev_month = date('m', strtotime('first day of last month'));
+            } else {
+              $prev_month = 12;
+            }
+
+            $total_rs = 0;
+            $total_rsl = 0;
+            $total_rse = 0;
+            $total_ccf = 0;
+            $total_chd = 0;
+            $total_df = 0;
+            $total_horizontal_total = 0;
+            for($i=1; $i<=$prev_month; $i++){ 
+                $month = date('F', mktime(0, 0, 0, $i, 10)); 
+
+                $date = date('Y-m', strtotime($_POST['filterYear']."-".$i."-01"));
+                $month2 = date('F Y', mktime(0, 0, 0, $i, 10));
+
+                $month3 = date('F 31, Y', mktime(0, 0, 0, $i, 10));
+                $month4 = date('F 30, Y', mktime(0, 0, 0, $i, 10));
+
+                $check_regular_submission = $dbh4->query("SELECT COUNT(fld_filename) as cnt_rs FROM tbtransmittal WHERE fld_provcode = '".$_POST['searchEntity']."' and (fld_date_covered LIKE '".$date."%' AND fld_trans_type = 1 or fld_date_covered LIKE '%".$month2."%' AND fld_trans_type = 1 or fld_date_covered LIKE '%".$month3."%' AND fld_trans_type = 1 or fld_date_covered LIKE '%".$month4."%' AND fld_trans_type = 1)");
+                $crs=$check_regular_submission->fetch_array();
+                
+                $check_regular_submission_late = $dbh4->query("SELECT COUNT(fld_filename) as cnt_rsl FROM tbtransmittal WHERE fld_provcode = '".$_POST['searchEntity']."' and (fld_date_covered LIKE '".$date."%' AND fld_trans_type = 6 or fld_date_covered LIKE '%".$month2."%' AND fld_trans_type = 6 or fld_date_covered LIKE '%".$month3."%' AND fld_trans_type = 6 or fld_date_covered LIKE '%".$month4."%' AND fld_trans_type = 6)");
+                $crsl=$check_regular_submission_late->fetch_array();
+
+                $check_regular_submission_extended = $dbh4->query("SELECT COUNT(fld_filename) as cnt_rse FROM tbtransmittal WHERE fld_provcode = '".$_POST['searchEntity']."' and (fld_date_covered LIKE '".$date."%' AND fld_trans_type = 5 or fld_date_covered LIKE '%".$month2."%' AND fld_trans_type = 5 or fld_date_covered LIKE '%".$month3."%' AND fld_trans_type = 5 or fld_date_covered LIKE '%".$month4."%' AND fld_trans_type = 5)");
+                $crse=$check_regular_submission_extended->fetch_array();
+
+                $check_correction_file = $dbh4->query("SELECT COUNT(fld_filename) as cnt_cf FROM tbtransmittal WHERE fld_provcode = '".$_POST['searchEntity']."' and (fld_date_covered LIKE '".$date."%' AND fld_trans_type = 2 or fld_date_covered LIKE '%".$month2."%' AND fld_trans_type = 2 or fld_date_covered LIKE '%".$month3."%' AND fld_trans_type = 2 or fld_date_covered LIKE '%".$month4."%' AND fld_trans_type = 2)");
+                $ccf=$check_correction_file->fetch_array();
+
+                $check_historical_data = $dbh4->query("SELECT COUNT(fld_filename) as cnt_hd FROM tbtransmittal WHERE fld_provcode = '".$_POST['searchEntity']."' and (fld_date_covered LIKE '".$date."%' AND fld_trans_type = 4 or fld_date_covered LIKE '%".$month2."%' AND fld_trans_type = 4 or fld_date_covered LIKE '%".$month3."%' AND fld_trans_type = 4 or fld_date_covered LIKE '%".$month4."%' AND fld_trans_type = 4)");
+                $chd=$check_historical_data->fetch_array();
+
+                $check_dispute_file = $dbh4->query("SELECT COUNT(fld_filename) as cnt_df FROM tbtransmittal WHERE fld_provcode = '".$_POST['searchEntity']."' and (fld_date_covered LIKE '".$date."%' AND fld_trans_type = 3 or fld_date_covered LIKE '%".$month2."%' AND fld_trans_type = 3 or fld_date_covered LIKE '%".$month3."%' AND fld_trans_type = 3 or fld_date_covered LIKE '%".$month4."%' AND fld_trans_type = 3)");
+                $cdf=$check_dispute_file->fetch_array();
+
+                $check_lapsed_file = $dbh4->query("SELECT COUNT(fld_filename) as cnt_clf FROM tbtransmittal WHERE fld_provcode = '".$_POST['searchEntity']."' and (fld_date_covered LIKE '".$date."%' AND fld_trans_type = 7 or fld_date_covered LIKE '%".$month2."%' AND fld_trans_type = 7 or fld_date_covered LIKE '%".$month3."%' AND fld_trans_type = 7 or fld_date_covered LIKE '%".$month4."%' AND fld_trans_type = 7)");
+                $clf=$check_lapsed_file->fetch_array();
+
+                $total_horizontal = $crs['cnt_rs'] + $crsl['cnt_rsl'] + $crse['cnt_rse'] + $ccf['cnt_cf'] + $chd['cnt_hd'] + $cdf['cnt_df'] + $clf['cnt_clf'];
+                
+          ?>
+          <tr>
+            <td><b><?php echo $month; ?></b></td>
+            <td style="text-align: right;"><?php echo ($crs['cnt_rs'] ? "<a href='main.php?nid=135&sid=1&rid=0&provcode=".$_POST['searchEntity']."&month=".$date."&subtype=rs' target='_blank'>".$crs['cnt_rs']."</a>" : "<p style='color: red;'>0</p>"); ?></td>
+            <td style="text-align: right;"><?php echo ($crsl['cnt_rsl'] ? "<a href='main.php?nid=135&sid=1&rid=0&provcode=".$_POST['searchEntity']."&month=".$date."&subtype=ls' target='_blank'>".$crsl['cnt_rsl']."</a>" : "<p style='color: red;'>0</p>"); ?></td>
+            <td style="text-align: right;"><?php echo ($crse['cnt_rse'] ? "<a href='main.php?nid=135&sid=1&rid=0&provcode=".$_POST['searchEntity']."&month=".$date."&subtype=ers' target='_blank'>".$crse['cnt_rse']."</a>" : "<p style='color: red;'>0</p>"); ?></td>
+            <td style="text-align: right;"><?php echo ($clf['cnt_clf'] ? "<a href='main.php?nid=135&sid=1&rid=0&provcode=".$_POST['searchEntity']."&month=".$date."&subtype=clf' target='_blank'>".$clf['cnt_clf']."</a>" : "<p style='color: red;'>0</p>"); ?></td>
+            <td style="text-align: right;"><?php echo ($chd['cnt_hd'] ? "<a href='main.php?nid=135&sid=1&rid=0&provcode=".$_POST['searchEntity']."&month=".$date."&subtype=hd' target='_blank'>".$chd['cnt_hd']."</a>" : "<p style='color: red;'>0</p>"); ?></td>
+            <td style="text-align: right;"><?php echo ($ccf['cnt_cf'] ? "<a href='main.php?nid=135&sid=1&rid=0&provcode=".$_POST['searchEntity']."&month=".$date."&subtype=cf' target='_blank'>".$ccf['cnt_cf']."</a>" : "<p style='color: red;'>0</p>"); ?></td>
+            <td style="text-align: right;"><?php echo ($cdf['cnt_df'] ? "<a href='main.php?nid=135&sid=1&rid=0&provcode=".$_POST['searchEntity']."&month=".$date."&subtype=df' target='_blank'>".$cdf['cnt_df']."</a>" : "<p style='color: red;'>0</p>"); ?></td>
+         
+            <td style="text-align: right;"><?php echo $total_horizontal; ?></td>
+          </tr>
+          <?php
+              $total_rs += $crs['cnt_rs'];
+              $total_rsl += $crsl['cnt_rsl'];
+              $total_rse += $crse['cnt_rse'];
+              $total_ccf += $ccf['cnt_cf'];
+              $total_chd += $chd['cnt_hd'];
+              $total_df += $cdf['cnt_df'];
+              $total_clf += $clf['cnt_clf'];
+              $total_horizontal_total += $total_horizontal;
+
+              $rs_true = ($crs['cnt_rs'] > 0 ? 1 : 0);
+              $rsl_true = ($crsl['cnt_rsl'] > 0 ? 1 : 0);
+              $rse_true = ($crse['cnt_rse'] > 0 ? 1 : 0);
+              $rsll_true = ($clf['cnt_clf'] > 0 ? 1 : 0);
+              
+              $rs_submitted = (($rs_true + $rsl_true + $rse_true + $rsll_true) > 0 ? 1 : 0 );
+
+              $total_rs_submitted += $rs_submitted;
+              
+
+              
+            }
+          ?>
+          <tr>
+            <td><b>TOTAL</b></td>
+            <td style="text-align: right;"><b><?php echo $total_rs; ?></b></td>
+            <td style="text-align: right;"><b><?php echo $total_rsl; ?></b></td>
+            <td style="text-align: right;"><b><?php echo $total_rse; ?></b></td>
+            <td style="text-align: right;"><b><?php echo $total_clf; ?></b></td>
+            <td style="text-align: right;"><b><?php echo $total_chd; ?></b></td>
+            <td style="text-align: right;"><b><?php echo $total_ccf; ?></b></td>
+            <td style="text-align: right;"><b><?php echo $total_df; ?></b></td>
+            <td style="text-align: right;"><b><?php echo $total_horizontal_total; ?></b></td>
+          </tr>
+          <tr>
+            <td colspan="8" style="background-color: #c9c8c7;"></td>
+          </tr>
+          <?php
+
+          $missed_months = $prev_month - $total_rs_submitted;
+          if($missed_months == 0){
+              $compliance_rating = "Fully Compliant";
+              $color = "text-success";
+              $dataOrder = 'data-order = "1" ';
+              $reduction_fee = 100;
+            } elseif ($missed_months > 0 and $missed_months <= 3) {
+              $compliance_rating = "Mostly Compliant";
+              $color = "text-info";
+              $dataOrder = 'data-order = "2" ';
+              $reduction_fee = 75;
+            } elseif($missed_months >= 4 and $missed_months <= 6){
+              $compliance_rating = "Partially Compliant";
+              $color = "text-primary";
+              $dataOrder = 'data-order = "3" ';
+              $reduction_fee = 50;
+            } elseif ($missed_months >= 7 and $missed_months <= 9) {
+              $compliance_rating = "Minimally Compliant";
+              $color = "text-warning"; 
+              $dataOrder = 'data-order = "4" ';
+              $reduction_fee = 25;     
+            } elseif ($missed_months > 9) {
+              $compliance_rating = "Inactive";
+              $color = "text-danger";
+              $dataOrder = 'data-order = "5" ';
+              $reduction_fee = 0;
+            } else {
+              // echo $rowcount."<br>";
+              $compliance_rating = "N/A";
+              // $color = "text-success";
+              $dataOrder = 'data-order = "1" ';
+              // $reduction_fee = 100;
+            }
+          ?>
+          <tr>
+            <td><b>MISSED MONTHS</b></td>
+            <td style="text-align: right;"><b><?php echo $missed_months; ?></b></td>
+            <td><b>COMPLIANCE RATING</b></td>
+            <td style="text-align: right;"><u><?php echo $compliance_rating; ?></u></td>
+            <td style="text-align: right;" colspan="4" style="background-color: #c9c8c7;"><b></b></td>
+            <!-- <td style="text-align: right;"><b><?php echo $total_chd; ?></b></td>
+            <td style="text-align: right;"><b><?php echo $total_df; ?></b></td>
+            <td style="text-align: right;"><b><?php echo $total_horizontal_total; ?></b></td> -->
+          </tr>
+        </tbody>
+      </table>
+      <?php
+        }
+
+      ?>
+    </div>
+    <!-- /.card-body -->
+  </div>
+  <!-- /.card -->
+
+</section>
+<!-- /.content -->

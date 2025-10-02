@@ -1,0 +1,254 @@
+<?php
+
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
+error_reporting(E_ALL);
+
+$selectedrating[$_POST['compliancerating']] = ' selected';
+
+$selectedenttype[$_POST['entitytype']] = ' selected';
+
+?>
+
+    <!-- Main content -->
+    <!-- Main content -->
+<section class="content">
+
+    <!-- Default box -->
+    <div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Transmittals Monitoring</h3>
+    </div>
+    <div class="card-body">
+    <form method="POST">
+    <div class="row">
+
+      <div class="col-3">
+          <div class="form-group"> 
+              <label class="col-form-label" for="entitytype">Entity Type</label>
+              <select class="form-control select2" name="entitytype" id="entitytype" onchange="submit()">
+                <option value="all" selected>All</option>
+                <?php
+              
+                  $start = date($filterYear."-01");
+                  $end = date($filterYear."-12-");
+                  $transType = 1;
+                  $filterYear = "2024";
+                  
+                  if(isset($_POST['transType'])){
+                    $transType = $_POST['transType'];
+                  } 
+                    if(isset($_POST['filterYear'])){
+                      $filterYear = $_POST['filterYear'];
+                  } 
+
+
+                    $entity_type = $dbh4->query("SELECT * FROM tbenttypes;");
+                  while($et=$entity_type->fetch_array()){
+                ?>
+                <option value="<?php echo $et['fld_type']; ?>"<?php echo $selectedenttype[$et['fld_type']]; ?>><?php echo $et['fld_name']; ?></option>
+                <?php
+                  }
+                ?>
+              </select>
+          </div>
+      </div>
+
+      
+      <div class="col-lg-4">
+            <div class="form-group">
+                <label class="col-form-label">Filter Submission Type</label>
+          
+                    <select class="custom-select transType" name="transType" id="transType" onchange="submit()"  value="<?php echo $_POST['transType']?>">
+                        <!-- <option value=""  disabled="">Select Submission Type</option> -->
+                        <option value="1" selected=""  <?php if($_POST['transType'] == 1){echo "selected='selected'";}  ?>>Regular Submission</option>
+                        <option value="5" <?php if($_POST['transType'] == 5){echo "selected='selected'";} ?>>Extended Regular Submission</option>
+                        <option value="6" <?php if($_POST['transType'] == 6){echo "selected='selected'";} ?>>Special Submission - Late Submission</option>
+                        <option value="2" <?php if($_POST['transType'] == 2){echo "selected='selected'";} ?>>Special Submission - Correction File</option>
+                        <option value="3" <?php if($_POST['transType'] == 3){echo "selected='selected'";} ?>>Special Submission - Dispute</option>
+                        <option value="4" <?php if($_POST['transType'] == 4){echo "selected='selected'";} ?>>Special Submission - Historical Data</option>
+                        
+                    </select>
+            </div>
+        </div>
+        <?php 
+
+        //  $te = date("2023");
+        //  $te=date("Y",strtotime($i."+1 year"));
+        //  echo   $te;
+     
+        ?>
+
+        <div class="col-lg-2">
+            <div class="form-group">
+                <label class="col-form-label">Filter Year</label>
+          
+                <select class="custom-select filterYear" name="filterYear" id="filterYear" onchange="submit()"  value="<?php echo $_POST['filterYear']?>">
+                                <!-- <option value=""  disabled="">Select Submission Type</option> -->      
+                                    <option><?php if(isset($_POST['filterYear'])){print_r($_POST['filterYear']);}else{print_r(date("Y"));} ?></option>
+                                    <?php
+                                    
+                                        $y=(int)date('Y');
+                                        ?>
+                                        <option value="<?php echo $y;?>" ><?php echo $y;?></option>
+                                            <?php
+                                            $y--;
+                                        for(; $y>'2022'; $y--)
+                                        {
+                                    ?>
+                                    <option value="<?php echo $y;?>"><?php echo $y;?></option>
+                                    <?php }?>
+                                </select>
+            </div>
+        </div>
+
+      <div class="col-2">
+        <div class="form-group pt-2">
+          <br>
+          <a href="main.php?nid=124&sid=0&rid=0" class="btn btn-secondary">Clear Filter</a>
+          </div>
+            
+      </div>
+      <div class="col-2">
+        <!-- <div>
+        <label for="compliancerating">Compliance Rating</label>
+          <select class="form-control" name="compliancerating" id="compliancerating" onchange="submit()">
+            <option value="all" selected>All</option>
+            <?php
+              $compliance_ratings = array(
+                "fullycompliant"=>"Fully Compliant",
+                "mostlycompliant"=>"Mostly Compliant",
+                "partiallycompliant"=>"Partially Compliant",
+                "minimallycompliant"=>"Minimally Compliant",
+                "inactive"=>"Inactive",
+              );
+              foreach($compliance_ratings as $k=>$v){
+            ?>
+            <option value="<?php echo $k; ?>"<?php echo $selectedrating[$k]; ?>><?php echo $v; ?></option>
+            <?php
+              }
+            ?>
+          </select>
+        </div> -->
+      </div>
+      
+     
+
+            </div>
+
+    </form>
+    
+    
+    <br><br>
+          <?php
+
+          echo "<table class='table table-bordered  table-sm dataTable dtr-inline' id='submissionstablearrival'>";
+          echo "<thead>";
+          echo "<tr><th bgcolor='#ffffff'>Provider Code</th><th bgcolor='#ffffff'>Company</th><th bgcolor='#ffffff'>Type</th>";
+          for ($m=date($filterYear."-1"); $m<=date($filterYear."-12"); $m=date("Y-m",strtotime($m."+1 month"))) {
+           
+           echo "<th><center>".date_format(new DateTime($m), "F Y")."</center></th>";
+          }
+          // echo "<th><center>Compliance Rating</center></th>";
+          echo "</tr>";
+          echo "</thead>";
+          echo "<tbody>";
+
+          if($_POST['entitytype'] != "all" and $_POST['entitytype']){
+            $query = " AND (fld_type = '".$_POST['entitytype']."' OR AES_DECRYPT(fld_provcode, md5(CONCAT(fld_ctrlno, 'RA3019'))) LIKE '%".$_POST['entitytype']."%' OR fld_secondary_type = '".$_POST['entitytype']."')";
+          } else {
+            $query = "";
+          }
+
+          $transType = 1;
+
+
+          if(isset($_POST['transType'])){
+              $transType = $_POST['transType'];
+          } 
+          // echo "SELECT fld_ctrlno, fld_type, AES_DECRYPT(fld_provcode, md5(CONCAT(fld_ctrlno, 'RA3019'))) as fld_provcode, AES_DECRYPT(fld_name, md5(CONCAT(fld_ctrlno, 'RA3019'))) as fld_name FROM tbentities WHERE fld_registration_type <> 1".$query." OR (fld_registration_type = 1 AND fld_noc_pass_status = 1)";
+          // die();
+          // echo "SELECT fld_ctrlno, fld_type, AES_DECRYPT(fld_provcode, md5(CONCAT(fld_ctrlno, 'RA3019'))) as fld_provcode, AES_DECRYPT(fld_name, md5(CONCAT(fld_ctrlno, 'RA3019'))) as fld_name FROM tbentities WHERE fld_registration_type <> 1".$query." OR (fld_registration_type = 1 AND fld_noc_pass_status = 1".$query.")";
+          $get_all_sep=$dbh4->query("SELECT fld_ctrlno, fld_type, AES_DECRYPT(fld_provcode, md5(CONCAT(fld_ctrlno, 'RA3019'))) as fld_provcode, AES_DECRYPT(fld_name, md5(CONCAT(fld_ctrlno, 'RA3019'))) as fld_name FROM tbentities WHERE fld_registration_type <> 1".$query." OR (fld_registration_type = 1 AND fld_noc_pass_status = 1".$query." )");
+
+          while($gap=$get_all_sep->fetch_array()){
+              // $fd_month = date("Y-m" ,strtotime($r1['fld_created_time']));
+              echo "<tr>
+              <td bgcolor='#ffffff'>".$gap['fld_provcode']."</td><td bgcolor='#ffffff'>".$gap['fld_name']."</td><td bgcolor='#ffffff'>".$gap['fld_type']."</td>";
+              $counter = 0;
+              for ($m=date($filterYear."-01"); $m<=date($filterYear."-12"); $m=date("Y-m",strtotime($m."+1 month"))) {
+                $month_check = $m;
+              
+                // ON cic80.fld_provcode = seis.fld_provcode
+                // ON SUBSTRING(cic80.fld_subject, 71, 30) = SUBSTRING(seis.fld_filename, 1, 28)
+                // $sql2=$dbh->query("SELECT COUNT(cic80.fld_id) as rcnt
+                // FROM cicportal80.tbprodtickets as cic80
+                // INNER JOIN cicseis.tbtransmittal as seis
+                // ON SUBSTRING(cic80.fld_subject, 71, 30) = SUBSTRING(seis.fld_filename, 1, 28)
+                // WHERE cic80.fld_provcode = '".$gap['fld_provcode']."' AND cic80.fld_subject LIKE '%[CIC PROD]%' AND cic80.fld_created_time LIKE '".$month_check."%' AND seis.fld_trans_type = '". $transType."'  ");
+
+
+                // echo "SELECT COUNT(*) AS rcnt FROM tbtransmittal WHERE fld_provcode = '".$gap['fld_provcode']."' and fld_date_covered LIKE '".$month_check."%' and fld_trans_type = '".$transType ."' ";
+                // die();
+                $sql2=$dbh4->query("SELECT COUNT(*) AS rcnt FROM tbtransmittal WHERE fld_provcode = '".$gap['fld_provcode']."' and fld_date_covered LIKE '".$month_check."%' and fld_trans_type = '".$transType ."' ");
+
+                $r2=$sql2->fetch_array();
+                // die();
+             
+
+             
+                if($r2['rcnt'] > 0){
+                  echo "<td bgcolor='#ffffff' align='right'><center>"."<a href='main.php?nid=124&sid=1&rid=1&provCode=".$gap['fld_provcode']."&dateMonth=".$month_check."'>".$r2['rcnt']."</a> </center></td>";
+
+                } else {
+                  $counter++;
+                  echo "<td bgcolor='#ffffff' align='right' style='color:red;'><center>0</center></td>";
+                }
+               
+                
+              }
+
+                if($counter == 0){
+                      $compliance_rating = "Fully Compliant";
+                      $color = "text-success";
+                      $dataOrder = 'data-order = "1" ';
+                    } elseif ($counter > 0 and $counter <= 3) {
+                      $compliance_rating = "Mostly Compliant";
+                      $color = "text-info";
+                      $dataOrder = 'data-order = "2" ';
+                    } elseif($counter >= 4 and $counter <= 6){
+                      $compliance_rating = "Partially Compliant";
+                      $color = "text-primary";
+                      $dataOrder = 'data-order = "3" ';
+                    } elseif ($counter >= 7 and $counter <= 9) {
+                      $compliance_rating = "Minimally Compliant";
+                      $color = "text-warning"; 
+                      $dataOrder = 'data-order = "4" ';     
+                    } elseif ($counter > 9) {
+                      $compliance_rating = "Inactive";
+                      $color = "text-danger";
+                      $dataOrder = 'data-order = "5" ';
+                    } else {
+                      $compliance_rating = "N/A";
+                      $color = "text-muted";
+                      $dataOrder = 'data-order = "6" ';
+                    }
+
+
+              // echo "<td $dataOrder class='$color'><center>".$compliance_rating."</center></td>";
+              
+            echo "</tr>";
+          
+          }
+          echo "</tbody>";
+          echo "</table>";
+        
+          ?>
+        </div>
+        <!-- /.box-body -->
+      </div>
+      <!-- /.box -->
+
+    </section>
+    <!-- /.content -->
+  

@@ -1,0 +1,3465 @@
+<?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+//echo getcwd();
+
+      $ctrl_no = $_GET['ctrlno'];
+      $get_name_of_company_selected = $dbh4->query("SELECT AES_DECRYPT(fld_name, md5(CONCAT(fld_ctrlno, 'RA3019'))) AS company_name FROM `tbentities` WHERE fld_ctrlno=".$ctrl_no);
+      $com_nm = $get_name_of_company_selected->fetch_array();
+
+$offTypSel[$_POST['offenseType']] = " selected";
+$offLvlSel[$_POST['offenseLevel']] = " selected";
+
+//echo "INSERT INTO tbict_corrective_action (fld_ctrlno, fld_corrective_action, fld_corrective_action_remarks, fld_corrective_action_ts, fld_corrective_action_by, fld_icmt_corracc5_off_type, fld_icmt_corracc5_off_lvl, fld_icmt_corracc5_off_type_ts) VALUES ('".$ctrl_no."', '1', '".$corrAct."', '".$timestamp."', '".$_SESSION['name']."', '".$offenseType."', '".$offenseLevel."', '".$dnt."')";
+
+if ($com_nm['company_name']) {
+  $timestamp = date("Y-m-d H:i:s");
+
+  $approvalCorrActOptions = array("1" => "Follow Up Notice", "2" => "1. Required Attendance in Technical Training Sessions", "3" => "2. Issuance of a Letter of Compliance", "4" => "3. Reporting to Government Regulatory Agencies", "5" => "4. Public Warning for Delinquency", "6" => "5. Imposition of Administrative Sanctions and Penalties");
+  $offenseTypeOptions = array("1" => "Minor Offense", "2" => "Major Offense");
+  $offenseLevelOptions1 = array("1" => "1st Offense - ₱1,000 per day ", "2" => "2nd Offense - ₱2,500 per day", "3" => "3rd Offense - ₱5,000 per day", "4" => "4th Offense - ₱10,000 per day");
+  $offenseLevelOptions2 = array("1" => "1st Offense - ₱15,000 per day", "2" => "2nd Offense - ₱20,000 per day", "3" => "3rd Offense - ₱25,000 per day", "4" => "4th Offense - ₱30,000 per day");
+  $targetDir = 'uploads/';
+
+// if ($_POST['uploadBtn']) {
+
+//   if(!empty($_FILES['inputFile']['name'])) {
+//     $fileName = basename($_FILES['inputFile']['name']);
+//     $targetFilePath = $targetDir . $fileName;
+//     $fileType = pathinfo($targetFilePath, PATHINFO_EXTENSION);
+//     //$newName = $ctrl_no . '_CORRECTIVE_ACTION';
+
+//     // $fileName = $targetDir . basename($_FILES['inputFile']['name']);
+//     // //$targetFilePath = $targetDir . $fileName;
+//     // $fileType = pathinfo($fileName, PATHINFO_EXTENSION);
+//     // $newName = $ctrl_no . '_CORRECTIVE_ACTION' . $fileType;
+
+//     $allowTypes = array('pdf');
+//     if (in_array($fileType, $allowTypes)) {
+//       if (move_uploaded_file($_FILES['inputFile']['tmp_name'], $targetFilePath)) {
+//         if ($dbh4->query("INSERT INTO tbict_validation_remarks (fld_ctrlno, fld_icmt_approval_files, fld_icmt_approval_files_ts, fld_icmt_approval_files_by) VALUES ('".$ctrl_no."', '".$fileName."', '".$timestamp."', '".$_SESSION['name']."')")) {
+//           if ($dbh4->query("UPDATE tbentities set fld_icmt_approval_files = '".$fileName."', fld_icmt_approval_files_ts = '".$timestamp."', fld_icmt_approval_files_by = '".$_SESSION['name']."' WHERE fld_ctrlno = '".$ctrl_no."'")) {
+//             //include 'PHPMailer/correctiveaction3.reject.php';
+//             $msg = "File has been Uploaded";
+//             $msgclr = "success";
+//           }
+//         }
+//       }
+//     }
+//     else {
+//       $msg = "Please select a pdf file";
+//       $msgclr = "danger";
+//     }
+//   }
+// }
+}
+
+  if ($_POST['approvalCorrAct']) {
+    $corrActsel[$_POST['approvalCorrAct']] = " selected";
+  }
+
+  // $dnt = $timestamp;
+
+  // echo $dnt;
+
+  //echo $include;
+
+  //$checkCorrAct = $dbh4->query("SELECT * FROM tbict_corrective_action WHERE fld_ctrlno = '".$ctrl_no."'");
+  //$insert = $dbh4->query("INSERT INTO tbict_corrective_action (fld_ctrlno, fld_corrective_action, fld_corrective_action_remarks, fld_corrective_action_ts, fld_corrective_action_by, fld_icmt_corracc5_off_type, fld_icmt_corracc5_off_lvl, fld_icmt_corracc5_off_type_ts) VALUES ('".$ctrl_no."', '".$corrAct."', '".$txt."', '".$timestamp."', '".$_SESSION['name']."', '".$offenseType."', '".$offenseLevel."', '".$dnt."')");
+
+
+  if ($_POST['sbtApprove']) {
+    $txt = addslashes($_POST['approval_remarks']);
+
+    // empty corrective action
+    if (empty($_POST['approvalCorrAct'])) {
+      $msg = "Please select a Corrective Action";
+      $msgclr = "danger";
+    }
+    // empty offense type or level
+    elseif ($_POST['approvalCorrAct'] == "6" && (empty($_POST['offenseType']) || empty($_POST['offenseLevel']))) {
+      $msg = "Choose an offense level and type.";
+      $msgclr = "danger";
+    }
+    // corrective action #5
+    elseif ($_POST['approvalCorrAct'] == "6") {
+      $rsn = addslashes($_POST['reason_remarks']);
+
+      if ($_POST['offenseType'] == 1) {
+        $type = 1;
+      }
+      elseif ($_POST['offenseType'] == 2) {
+        $type = 2;
+      }
+  
+      if ($_POST['offenseLevel'] == 1) {
+        $level = 1;
+      }
+      elseif ($_POST['offenseLevel'] == 2) {
+        $level = 2;
+      }
+      elseif ($_POST['offenseLevel'] == 3) {
+        $level = 3;
+      }
+      elseif ($_POST['offenseLevel'] == 4) {
+        $level = 4;
+      }
+  
+      $corrAct = 6;
+      $include = include 'PHPMailer/correctiveaction5.emailer.php';
+
+      if ($dbh4->query("INSERT INTO tbict_corrective_action 
+              (fld_ctrlno, fld_corrective_action, fld_corrective_action_remarks, fld_corrective_action_ts, fld_corrective_action_by, fld_icmt_corracc5_off_type, fld_icmt_corracc5_off_lvl, fld_icmt_corracc5_off_type_ts, fld_icmt_corracc5_off_reason) 
+              VALUES 
+              ('".$ctrl_no."', '".$corrAct."','".$txt."', '".$timestamp."', '".$_SESSION['name']."', '".$type."', '".$level."', '".$timestamp."', '".$rsn."')")) {
+        echo $include;
+      }
+    }
+    else {
+      // follow up
+      if ($_POST['approvalCorrAct'] == "1") {
+        $corrAct = 1;
+        $include = include 'PHPMailer/follow.up.php';
+      }
+      // corrective action #1
+      elseif ($_POST['approvalCorrAct'] == "2") {
+        $corrAct = 2;
+        $include = include 'PHPMailer/correctiveaction1.emailer.php';
+      }
+      // corrective action #2
+      elseif ($_POST['approvalCorrAct'] == "3") {
+        $corrAct = 3;
+        $include = include 'PHPMailer/correctiveaction2.emailer.php';
+      }
+      // corrective action #3
+      elseif ($_POST['approvalCorrAct'] == "4") {
+        $corrAct = 4;
+        $include = include 'PHPMailer/correctiveaction3.emailer.php';
+      }
+      // corrective action #4
+      elseif ($_POST['approvalCorrAct'] == "5") {
+        $corrAct = 5;
+        $include = include 'PHPMailer/correctiveaction4.emailer.php';
+      }
+      // // corrective action #5
+      // elseif ($_POST['approvalCorrAct'] == "6") {
+      //     if ($_POST['offenseType'] == 1) {
+      //       $offenseType = 1;
+      //     }
+      //     elseif ($_POST['offenseType'] == 2) {
+      //       $offenseType = 2;
+      //     }
+
+      //     if ($_POST['offenseLevel'] == 1) {
+      //       $offenseLevel = 1;
+      //     }
+      //     elseif ($_POST['offenseLevel'] == 2) {
+      //       $offenseLevel = 2;
+      //     }
+      //     elseif ($_POST['offenseLevel'] == 3) {
+      //       $offenseLevel = 3;
+      //     }
+      //     elseif ($_POST['offenseLevel'] == 4) {
+      //       $offenseLevel = 4;
+      //     }
+
+      //     $corrAct = 6;
+      //     $include = include 'PHPMailer/correctiveaction5.emailer.php';
+      //     $dnt = $timestamp;
+      // }
+      
+      if ($dbh4->query("INSERT INTO tbict_corrective_action (fld_ctrlno, fld_corrective_action, fld_corrective_action_remarks, fld_corrective_action_ts, fld_corrective_action_by) VALUES ('".$ctrl_no."', '".$corrAct."','".$txt."', '".$timestamp."', '".$_SESSION['name']."')")) {
+        echo $include;
+      }
+    }
+  }
+ 
+  // follow up
+  // if ($_POST['sbtApprove'] && $_POST['approvalCorrAct'] == "1") {
+  //   $txt = addslashes($_POST['approval_remarks']);
+
+  //   if ($dbh4->query("INSERT INTO tbict_validation_remarks (fld_ctrlno, fld_corrective_action, fld_corrective_action_remarks, fld_corrective_action_ts, fld_corrective_action_by) VALUES ('".$ctrl_no."', '1', '".$txt."', '".$timestamp."', '".$_SESSION['name']."')")) {
+  //     if ($dbh4->query("UPDATE tbentities set fld_corrective_action = 1, fld_corrective_action_remarks = '".$txt."', fld_corrective_action_ts = '".$timestamp."', fld_corrective_action_by = '".$_SESSION['name']."' WHERE fld_ctrlno = '".$ctrl_no."'")) {
+  //       include 'PHPMailer/follow.up.php';
+  //     }
+  //   } 
+  // }  
+
+  // // corrective action #1
+  // elseif ($_POST['sbtApprove'] && $_POST['approvalCorrAct'] == "2") {
+  //   $txt = addslashes($_POST['approval_remarks']);
+
+  //   if ($dbh4->query("INSERT INTO tbict_validation_remarks (fld_ctrlno, fld_corrective_action, fld_corrective_action_remarks, fld_corrective_action_ts, fld_corrective_action_by) VALUES ('".$ctrl_no."', '2', '".$txt."', '".$timestamp."', '".$_SESSION['name']."')")) {
+  //     if ($dbh4->query("UPDATE tbentities set fld_corrective_action = 2, fld_corrective_action_remarks = '".$txt."', fld_corrective_action_ts = '".$timestamp."', fld_corrective_action_by = '".$_SESSION['name']."' WHERE fld_ctrlno = '".$ctrl_no."'")) {
+  //       include 'PHPMailer/correctiveaction1.emailer.php';
+  //     }
+  //   }
+  // }
+
+  // // corrective action #2 
+  // elseif ($_POST['sbtApprove'] && $_POST['approvalCorrAct'] == "3") {
+  //   $txt = addslashes($_POST['approval_remarks']);
+
+  //   if ($dbh4->query("INSERT INTO tbict_validation_remarks (fld_ctrlno, fld_corrective_action, fld_corrective_action_remarks, fld_corrective_action_ts, fld_corrective_action_by) VALUES ('".$ctrl_no."', '3', '".$txt."', '".$timestamp."', '".$_SESSION['name']."')")) {
+  //     if ($dbh4->query("UPDATE tbentities set fld_corrective_action = 3, fld_corrective_action_remarks = '".$txt."', fld_corrective_action_ts = '".$timestamp."', fld_corrective_action_by = '".$_SESSION['name']."' WHERE fld_ctrlno = '".$ctrl_no."'")) {
+  //       include 'PHPMailer/correctiveaction2.emailer.php';
+  //     }
+  //   }
+  // }  
+
+  // // corrective action #3
+  // elseif ($_POST['sbtApprove'] && $_POST['approvalCorrAct'] == "4") {
+  //   $txt = addslashes($_POST['approval_remarks']);
+
+  //   if ($dbh4->query("INSERT INTO tbict_validation_remarks (fld_ctrlno, fld_corrective_action, fld_corrective_action_remarks, fld_corrective_action_ts, fld_corrective_action_by) VALUES ('".$ctrl_no."', '4', '".$txt."', '".$timestamp."', '".$_SESSION['name']."')")) {
+  //     if ($dbh4->query("UPDATE tbentities set fld_corrective_action = 4, fld_corrective_action_remarks = '".$txt."', fld_corrective_action_ts = '".$timestamp."', fld_corrective_action_by = '".$_SESSION['name']."' WHERE fld_ctrlno = '".$ctrl_no."'")) {
+  //       include 'PHPMailer/correctiveaction3.emailer.php';
+  //     }
+  //   }
+  // }
+
+  // // corrective action #4 
+  // elseif ($_POST['sbtApprove'] && $_POST['approvalCorrAct'] == "5") {
+  //   $txt = addslashes($_POST['approval_remarks']);
+
+  //   if ($dbh4->query("INSERT INTO tbict_validation_remarks (fld_ctrlno, fld_corrective_action, fld_corrective_action_remarks, fld_corrective_action_ts, fld_corrective_action_by) VALUES ('".$ctrl_no."', '5', '".$txt."', '".$timestamp."', '".$_SESSION['name']."')")) {
+  //     if ($dbh4->query("UPDATE tbentities set fld_corrective_action = 5, fld_corrective_action_remarks = '".$txt."', fld_corrective_action_ts = '".$timestamp."', fld_corrective_action_by = '".$_SESSION['name']."' WHERE fld_ctrlno = '".$ctrl_no."'")) {
+  //       include 'PHPMailer/correctiveaction4.emailer.php';
+  //     }
+  //   }
+  // }
+
+  // // corrective action #5
+  // elseif ($_POST['sbtApprove'] && $_POST['approvalCorrAct'] == "6") {
+  //   $txt = addslashes($_POST['approval_remarks']);
+
+  //   // corrective action #5 (empty warning)
+  //   if (empty($_POST['offenseType']) || empty($_POST['offenseLevel'])) {
+  //     $msg = "Choose an offense level and type.";
+  //     $msgclr = "danger";
+  //   }
+
+  //   // corrective action #5 (minor offense - 1st offense)
+  //   elseif ($_POST['offenseType'] == "1" && $_POST['offenseLevel'] == "1") {
+  //     if ($dbh4->query("INSERT INTO tbict_validation_remarks (fld_ctrlno, fld_corrective_action, fld_corrective_action_remarks, fld_corrective_action_ts, fld_corrective_action_by, fld_icmt_corracc5_off_type, fld_icmt_corracc5_off_type_ts, fld_icmt_corracc5_off_type_by, fld_icmt_corracc5_off_lvl, fld_icmt_corracc5_off_lvl_ts, fld_icmt_corracc5_off_lvl_by) VALUES ('".$ctrl_no."', '6', '".$txt."', '".$timestamp."', '".$_SESSION['name']."', '1', '".$timestamp."', '".$_SESSION['name']."', '1', '".$timestamp."', '".$_SESSION['name']."')")) {
+  //       if ($dbh4->query("UPDATE tbentities set fld_corrective_action = 6, fld_corrective_action_remarks = '".$txt."', fld_corrective_action_ts = '".$timestamp."', fld_corrective_action_by = '".$_SESSION['name']."', fld_icmt_corracc5_off_type = 1, fld_icmt_corracc5_off_type_ts = '".$timestamp."', fld_icmt_corracc5_off_type_by = '".$_SESSION['name']."', fld_icmt_corracc5_off_lvl = 1, fld_icmt_corracc5_off_lvl_ts = '".$timestamp."', fld_icmt_corracc5_off_lvl_by = '".$_SESSION['name']."' WHERE fld_ctrlno = '".$ctrl_no."'")) {
+  //         include 'PHPMailer/correctiveaction5.emailer.php';
+  //       }
+  //     }
+  //   }
+
+  //   // corrective action #5 (minor offense - 2nd offense)
+  //   elseif ($_POST['offenseType'] == "1" && $_POST['offenseLevel'] == "2") {
+  //     if ($dbh4->query("INSERT INTO tbict_validation_remarks (fld_ctrlno, fld_corrective_action, fld_corrective_action_remarks, fld_corrective_action_ts, fld_corrective_action_by, fld_icmt_corracc5_off_type, fld_icmt_corracc5_off_type_ts, fld_icmt_corracc5_off_type_by, fld_icmt_corracc5_off_lvl, fld_icmt_corracc5_off_lvl_ts, fld_icmt_corracc5_off_lvl_by) VALUES ('".$ctrl_no."', '6', '".$txt."', '".$timestamp."', '".$_SESSION['name']."', '1', '".$timestamp."', '".$_SESSION['name']."', '2', '".$timestamp."', '".$_SESSION['name']."')")) {
+  //       if ($dbh4->query("UPDATE tbentities set fld_corrective_action = 6, fld_corrective_action_remarks = '".$txt."', fld_corrective_action_ts = '".$timestamp."', fld_corrective_action_by = '".$_SESSION['name']."', fld_icmt_corracc5_off_type = 1, fld_icmt_corracc5_off_type_ts = '".$timestamp."', fld_icmt_corracc5_off_type_by = '".$_SESSION['name']."', fld_icmt_corracc5_off_lvl = 2, fld_icmt_corracc5_off_lvl_ts = '".$timestamp."', fld_icmt_corracc5_off_lvl_by = '".$_SESSION['name']."' WHERE fld_ctrlno = '".$ctrl_no."'")) {
+  //         include 'PHPMailer/correctiveaction5.emailer.php';
+  //       }
+  //     }
+  //   }
+
+  //   // corrective action #5 (minor offense - 3rd offense)
+  //   elseif ($_POST['offenseType'] == "1" && $_POST['offenseLevel'] == "3") {
+  //     if ($dbh4->query("INSERT INTO tbict_validation_remarks (fld_ctrlno, fld_corrective_action, fld_corrective_action_remarks, fld_corrective_action_ts, fld_corrective_action_by, fld_icmt_corracc5_off_type, fld_icmt_corracc5_off_type_ts, fld_icmt_corracc5_off_type_by, fld_icmt_corracc5_off_lvl, fld_icmt_corracc5_off_lvl_ts, fld_icmt_corracc5_off_lvl_by) VALUES ('".$ctrl_no."', '6', '".$txt."', '".$timestamp."', '".$_SESSION['name']."', '1', '".$timestamp."', '".$_SESSION['name']."', '3', '".$timestamp."', '".$_SESSION['name']."')")) {
+  //       if ($dbh4->query("UPDATE tbentities set fld_corrective_action = 6, fld_corrective_action_remarks = '".$txt."', fld_corrective_action_ts = '".$timestamp."', fld_corrective_action_by = '".$_SESSION['name']."', fld_icmt_corracc5_off_type = 1, fld_icmt_corracc5_off_type_ts = '".$timestamp."', fld_icmt_corracc5_off_type_by = '".$_SESSION['name']."', fld_icmt_corracc5_off_lvl = 3, fld_icmt_corracc5_off_lvl_ts = '".$timestamp."', fld_icmt_corracc5_off_lvl_by = '".$_SESSION['name']."' WHERE fld_ctrlno = '".$ctrl_no."'")) {
+  //         include 'PHPMailer/correctiveaction5.emailer.php';
+  //       }
+  //     }
+  //   }
+
+  //   // corrective action #5 (minor offense - 4th offense)
+  //   elseif ($_POST['offenseType'] == "1" && $_POST['offenseLevel'] == "4") {
+  //     if ($dbh4->query("INSERT INTO tbict_validation_remarks (fld_ctrlno, fld_corrective_action, fld_corrective_action_remarks, fld_corrective_action_ts, fld_corrective_action_by, fld_icmt_corracc5_off_type, fld_icmt_corracc5_off_type_ts, fld_icmt_corracc5_off_type_by, fld_icmt_corracc5_off_lvl, fld_icmt_corracc5_off_lvl_ts, fld_icmt_corracc5_off_lvl_by) VALUES ('".$ctrl_no."', '6', '".$txt."', '".$timestamp."', '".$_SESSION['name']."', '1', '".$timestamp."', '".$_SESSION['name']."', '4', '".$timestamp."', '".$_SESSION['name']."')")) {
+  //       if ($dbh4->query("UPDATE tbentities set fld_corrective_action = 6, fld_corrective_action_remarks = '".$txt."', fld_corrective_action_ts = '".$timestamp."', fld_corrective_action_by = '".$_SESSION['name']."', fld_icmt_corracc5_off_type = 1, fld_icmt_corracc5_off_type_ts = '".$timestamp."', fld_icmt_corracc5_off_type_by = '".$_SESSION['name']."', fld_icmt_corracc5_off_lvl = 4, fld_icmt_corracc5_off_lvl_ts = '".$timestamp."', fld_icmt_corracc5_off_lvl_by = '".$_SESSION['name']."' WHERE fld_ctrlno = '".$ctrl_no."'")) {
+  //         include 'PHPMailer/correctiveaction5.emailer.php';
+  //       }
+  //     }
+  //   }
+
+  //   // corrective action #5 (major offense - 1st offense)
+  //   elseif ($_POST['offenseType'] == "2" && $_POST['offenseLevel'] == "1") {
+  //     if ($dbh4->query("INSERT INTO tbict_validation_remarks (fld_ctrlno, fld_corrective_action, fld_corrective_action_remarks, fld_corrective_action_ts, fld_corrective_action_by, fld_icmt_corracc5_off_type, fld_icmt_corracc5_off_type_ts, fld_icmt_corracc5_off_type_by, fld_icmt_corracc5_off_lvl, fld_icmt_corracc5_off_lvl_ts, fld_icmt_corracc5_off_lvl_by) VALUES ('".$ctrl_no."', '6', '".$txt."', '".$timestamp."', '".$_SESSION['name']."', '2', '".$timestamp."', '".$_SESSION['name']."', '1', '".$timestamp."', '".$_SESSION['name']."')")) {
+  //       if ($dbh4->query("UPDATE tbentities set fld_corrective_action = 6, fld_corrective_action_remarks = '".$txt."', fld_corrective_action_ts = '".$timestamp."', fld_corrective_action_by = '".$_SESSION['name']."', fld_icmt_corracc5_off_type = 2, fld_icmt_corracc5_off_type_ts = '".$timestamp."', fld_icmt_corracc5_off_type_by = '".$_SESSION['name']."', fld_icmt_corracc5_off_lvl = 1, fld_icmt_corracc5_off_lvl_ts = '".$timestamp."', fld_icmt_corracc5_off_lvl_by = '".$_SESSION['name']."' WHERE fld_ctrlno = '".$ctrl_no."'")) {
+  //         include 'PHPMailer/correctiveaction5.emailer.php';
+  //       }
+  //     }
+  //   }
+
+  //   // corrective action #5 (major offense - 2nd offense)
+  //   elseif ($_POST['offenseType'] == "2" && $_POST['offenseLevel'] == "2") {
+  //     if ($dbh4->query("INSERT INTO tbict_validation_remarks (fld_ctrlno, fld_corrective_action, fld_corrective_action_remarks, fld_corrective_action_ts, fld_corrective_action_by, fld_icmt_corracc5_off_type, fld_icmt_corracc5_off_type_ts, fld_icmt_corracc5_off_type_by, fld_icmt_corracc5_off_lvl, fld_icmt_corracc5_off_lvl_ts, fld_icmt_corracc5_off_lvl_by) VALUES ('".$ctrl_no."', '6', '".$txt."', '".$timestamp."', '".$_SESSION['name']."', '2', '".$timestamp."', '".$_SESSION['name']."', '2', '".$timestamp."', '".$_SESSION['name']."')")) {
+  //       if ($dbh4->query("UPDATE tbentities set fld_corrective_action = 6, fld_corrective_action_remarks = '".$txt."', fld_corrective_action_ts = '".$timestamp."', fld_corrective_action_by = '".$_SESSION['name']."', fld_icmt_corracc5_off_type = 2, fld_icmt_corracc5_off_type_ts = '".$timestamp."', fld_icmt_corracc5_off_type_by = '".$_SESSION['name']."', fld_icmt_corracc5_off_lvl = 2, fld_icmt_corracc5_off_lvl_ts = '".$timestamp."', fld_icmt_corracc5_off_lvl_by = '".$_SESSION['name']."' WHERE fld_ctrlno = '".$ctrl_no."'")) {
+  //         include 'PHPMailer/correctiveaction5.emailer.php';
+  //       }
+  //     }
+  //   }
+
+  //   // corrective action #5 (major offense - 3rd offense)
+  //   elseif ($_POST['offenseType'] == "2" && $_POST['offenseLevel'] == "3") {
+  //     if ($dbh4->query("INSERT INTO tbict_validation_remarks (fld_ctrlno, fld_corrective_action, fld_corrective_action_remarks, fld_corrective_action_ts, fld_corrective_action_by, fld_icmt_corracc5_off_type, fld_icmt_corracc5_off_type_ts, fld_icmt_corracc5_off_type_by, fld_icmt_corracc5_off_lvl, fld_icmt_corracc5_off_lvl_ts, fld_icmt_corracc5_off_lvl_by) VALUES ('".$ctrl_no."', '6', '".$txt."', '".$timestamp."', '".$_SESSION['name']."', '2', '".$timestamp."', '".$_SESSION['name']."', '3', '".$timestamp."', '".$_SESSION['name']."')")) {
+  //       if ($dbh4->query("UPDATE tbentities set fld_corrective_action = 6, fld_corrective_action_remarks = '".$txt."', fld_corrective_action_ts = '".$timestamp."', fld_corrective_action_by = '".$_SESSION['name']."', fld_icmt_corracc5_off_type = 2, fld_icmt_corracc5_off_type_ts = '".$timestamp."', fld_icmt_corracc5_off_type_by = '".$_SESSION['name']."', fld_icmt_corracc5_off_lvl = 3, fld_icmt_corracc5_off_lvl_ts = '".$timestamp."', fld_icmt_corracc5_off_lvl_by = '".$_SESSION['name']."' WHERE fld_ctrlno = '".$ctrl_no."'")) {
+  //         include 'PHPMailer/correctiveaction5.emailer.php';
+  //       }
+  //     }
+  //   }
+
+  //   // corrective action #5 (major offense - 4th offense)
+  //   elseif ($_POST['offenseType'] == "2" && $_POST['offenseLevel'] == "4") {
+  //     if ($dbh4->query("INSERT INTO tbict_validation_remarks (fld_ctrlno, fld_corrective_action, fld_corrective_action_remarks, fld_corrective_action_ts, fld_corrective_action_by, fld_icmt_corracc5_off_type, fld_icmt_corracc5_off_type_ts, fld_icmt_corracc5_off_type_by, fld_icmt_corracc5_off_lvl, fld_icmt_corracc5_off_lvl_ts, fld_icmt_corracc5_off_lvl_by) VALUES ('".$ctrl_no."', '6', '".$txt."', '".$timestamp."', '".$_SESSION['name']."', '2', '".$timestamp."', '".$_SESSION['name']."', '4', '".$timestamp."', '".$_SESSION['name']."')")) {
+  //       if ($dbh4->query("UPDATE tbentities set fld_corrective_action = 6, fld_corrective_action_remarks = '".$txt."', fld_corrective_action_ts = '".$timestamp."', fld_corrective_action_by = '".$_SESSION['name']."', fld_icmt_corracc5_off_type = 2, fld_icmt_corracc5_off_type_ts = '".$timestamp."', fld_icmt_corracc5_off_type_by = '".$_SESSION['name']."', fld_icmt_corracc5_off_lvl = 4, fld_icmt_corracc5_off_lvl_ts = '".$timestamp."', fld_icmt_corracc5_off_lvl_by = '".$_SESSION['name']."' WHERE fld_ctrlno = '".$ctrl_no."'")) {
+  //         include 'PHPMailer/correctiveaction5.emailer.php';
+  //       }
+  //     }
+  //   }
+  // }
+
+  // empty fields warning
+  // elseif ($_POST['sbtApprove']) {
+  //   $msg = "Please select a Corrective Action";
+  //   $msgclr = "danger";
+  // }
+
+
+  //echo "<br>";
+//echo "INSERT INTO tbict_corrective_action (fld_ctrlno, fld_corrective_action, fld_corrective_action_remarks, fld_corrective_action_ts, fld_corrective_action_by, fld_icmt_corracc5_off_type, fld_icmt_corracc5_off_lvl, fld_icmt_corracc5_off_type_ts, fld_icmt_corracc5_off_reason) VALUES ('".$ctrl_no."', '".$corrAct."','".$txt."', '".$timestamp."', '".$_SESSION['name']."', '".$offenseType."', '".$offenseLevel."', '".$timestamp."', '".$rsn."')";
+  
+?>
+<!-- <section class="content"> -->
+
+<!-- Main content -->
+<section class="content">
+<?php
+        if ($msg) {
+      ?>
+
+      <div class="alert alert-<?php echo $msgclr; ?> alert-dismissible">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+        <?php echo $msg; ?>
+      </div>
+
+      <?php 
+        }
+      ?>
+  <!-- Default box -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title"><b><?php echo $com_nm['company_name']; ?></b></h3>
+    </div>
+    <!-- <div class="card-body">
+      Start creating your amazing application!
+    </div> -->
+    <!-- /.card-body -->
+  </div>
+  <!-- /.card -->
+          <?php
+            $get_the_details_of_company_selected = $dbh4->query("SELECT fld_ctrlno, AES_DECRYPT(fld_provcode, md5(CONCAT(fld_ctrlno, 'RA3019'))) as provcode, AES_DECRYPT(fld_name, md5(CONCAT(fld_ctrlno, 'RA3019'))) as name, fld_re_ts, fld_re_validation_status, fld_re_validation_ts, fld_re_validation_incom_ts, fld_re_validation_by, fld_re_approval_status, fld_re_approval_ts, fld_re_approval_rej_ts, fld_re_approval_by, fld_uat_ceportal_sent, fld_uat_ceportal_sent_ts, fld_registration_upload, fld_registration_uploaded_by, AES_DECRYPT(fld_fname_c1, MD5(CONCAT(fld_ctrlno, 'RA3019'))) fname_c1, AES_DECRYPT(fld_mname_c1, MD5(CONCAT(fld_ctrlno, 'RA3019'))) mname_c1, AES_DECRYPT(fld_lname_c1, MD5(CONCAT(fld_ctrlno, 'RA3019'))) lname_c1, AES_DECRYPT(fld_extname_c1, MD5(CONCAT(fld_ctrlno, 'RA3019'))) extname_c1, AES_DECRYPT(fld_email_c1, MD5(CONCAT(fld_ctrlno, 'RA3019'))) email_c1, AES_DECRYPT(fld_fname_ar, MD5(CONCAT(fld_ctrlno, 'RA3019'))) fname_ar, AES_DECRYPT(fld_mname_ar, MD5(CONCAT(fld_ctrlno, 'RA3019'))) mname_ar, AES_DECRYPT(fld_lname_ar, MD5(CONCAT(fld_ctrlno, 'RA3019'))) lname_ar, AES_DECRYPT(fld_extname_ar, MD5(CONCAT(fld_ctrlno, 'RA3019'))) extname_ar, AES_DECRYPT(fld_email_ar, MD5(CONCAT(fld_ctrlno, 'RA3019'))) email_ar, fld_batch_uat_creds_status, fld_batch_uat_creds_ts, fld_batch_uat_creds_by, fld_batch_ops_reg, fld_web_ops_reg, fld_web_uat_creds_ts, fld_web_uat_creds_by, fld_se_testing_status, fld_se_testing_by, fld_se_testing_ts, fld_se_validation_by, fld_se_validation_ts, fld_se_confirmed_by, fld_se_confirmed_ts, fld_assignedto, fld_disp_email, fld_ip, fld_numacct_indv, fld_ds_status, fld_disp_status, fld_ipstatus, fld_status, fld_disp_emailsent, fld_disp_emailconfirmed, aes_decrypt(fld_disp_contact_email, md5(concat(fld_ctrlno, 'RA3019'))) as disp_contact_email, fld_ip_remarks, fld_re_resend_link_ts, fld_re_resend_link_bu, fld_process_status, fld_ts1, fld_ts2, fld_ts3, fld_change_ip_validate_ts, fld_web_uat_creds_status, fld_numacct_date, fld_numacct_indv, fld_numacct_comp, fld_numacct_inst, fld_numacct_noninst, fld_numacct_cc, fld_numacct_util, 
+              AES_DECRYPT(fld_sae, md5(CONCAT(fld_ctrlno, 'RA3019'))) as sae, fld_access_type, fld_aeis, fld_aeis_save_ts, fld_bill_status, fld_accountno, fld_bill_emailsent, AES_DECRYPT(fld_bill_contact_fname, md5(CONCAT(fld_ctrlno, 'RA3019'))) as fld_bill_contact_fname, AES_DECRYPT(fld_bill_contact_lname, md5(CONCAT(fld_ctrlno, 'RA3019'))) as fld_bill_contact_lname, AES_DECRYPT(fld_bill_contact_mname, md5(CONCAT(fld_ctrlno, 'RA3019'))) as fld_bill_contact_mname, AES_DECRYPT(fld_bill_contact_sname, md5(CONCAT(fld_ctrlno, 'RA3019'))) as fld_bill_contact_sname, AES_DECRYPT(fld_bill_contact_email, md5(CONCAT(fld_ctrlno, 'RA3019'))) as fld_bill_contact_email, AES_DECRYPT(fld_bill_email, md5(CONCAT(fld_ctrlno, 'RA3019'))) as fld_bill_email, fld_bill_emailconfirmed, fld_aeis_com_status, fld_aeisform_ts, fld_aeismoa_ts, fld_webops_ts, fld_aeissec_ts, fld_aesae_ts, fld_aeissaecrif_ts, fld_aeissaetransu_ts,fld_moa_status, fld_sae_status, fld_sae_by, fld_sae_ts, fld_sae_reject_remarks, fld_sae_validation_ts, fld_sae_validation_by, fld_sae_validation_status, fld_sae_validation_crif_status, fld_sae_validation_crif_reject_ts, fld_sae_validation_crif_approve_ts, fld_sae_validation_crif_by, fld_dqua_cert_appr_ts, fld_dqua_report_appr_ts, fld_dqua_validation_exemption_appr_ts, fld_dqua_validation_status, fld_dqua_validation_rej_ts, fld_dqua_validation_appr_ts, fld_dqua_validation_by, fld_dqua_cred_status, fld_dqua_cred_by, fld_dqua_cred_ts, fld_dqua_cert_status, fld_dqua_cert_rej_ts, fld_dqua_cert_appr_ts, fld_dqua_cert_appr_by, fld_dqua_report_status, fld_dqua_report_rej_ts, fld_dqua_report_appr_ts, fld_dqua_report_by, fld_dqua_sae_selected, fld_dqua_sae_cert_status, fld_dqua_sae_cert_ts, fld_dqua_sae_report_status, fld_dqua_sae_report_ts, fld_dqua_validation_approval_status, fld_dqua_validation_approval_ts, fld_dqua_validation_approval_rej_ts, fld_dqua_validation_approval_by, fld_dqua_validation_approval_remarks FROM tbentities WHERE fld_ctrlno=". $ctrl_no);
+            $gtdocs=$get_the_details_of_company_selected->fetch_array();
+
+            $check_uat_operators = $dbh4->query("SELECT fld_oid FROM tboperators WHERE fld_ctrlno = '".$_POST['company_select']."' and fld_uat = 1 and fld_delete = 0 ORDER BY fld_oid DESC LIMIT 1");
+            $cuo=$check_uat_operators->fetch_array();
+
+            // $rsrf = $dbh4->query("SELECT * FROM tbentities WHERE fld_ctrlno = '".$gtdocs['fld_ctrlno']."'");
+            // $rowrsrf = $rsrf->fetch_array();
+
+            // $remoteFile = $url_docs.'SEIS'.$gtdocs['fld_ctrlno'].'.pdf';
+
+            // // Initialize cURL
+            // $ch = curl_init($remoteFile);
+            // curl_setopt($ch, CURLOPT_NOBODY, true);
+            // curl_exec($ch);
+            // $responseCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            // curl_close($ch);
+
+            // Check the response code
+            // if($responseCode == 200){}
+          ?>
+
+<div class="row">
+ <div class="col-md-6">
+  <div class="card" style="height: 600px; overflow: scroll;">
+    <div class="card-body">
+      
+      <ul class="nav nav-tabs" id="custom-content-below-tab" role="tablist">
+        <li class="nav-item">
+          <a class="nav-link active" id="custom-content-below-re-tab" data-toggle="pill" href="#custom-content-below-re" role="tab" aria-controls="custom-content-below-re" aria-selected="true">Registered Entity</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="custom-content-below-uat-tab" data-toggle="pill" href="#custom-content-below-uat" role="tab" aria-controls="custom-content-below-uat" aria-selected="false">UAT</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="custom-content-below-se-tab" data-toggle="pill" href="#custom-content-below-se" role="tab" aria-controls="custom-content-below-se" aria-selected="false">Submitting Entity</a>
+        </li>
+      </ul>
+
+      <div class="tab-content" id="custom-content-below-tabContent">
+        <div class="tab-pane fade active show" id="custom-content-below-re" role="tabpanel" aria-labelledby="custom-content-below-re-tab">
+          <br/><br/>
+          <div class="timeline">
+            <!-- timeline time label -->
+            <div class="time-label">
+              <span class="bg-green"><?php echo date("d M. Y", strtotime($gtdocs['fld_registration_upload'])); ?></span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fas fa-upload bg-green"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i> <?php echo date("h:ia", strtotime($gtdocs['fld_registration_upload'])); ?></span>
+                <h3 class="timeline-header"><a href="#">Data Submission Team</a> - <?php echo $gtdocs['fld_registration_uploaded_by']; ?> </h3>
+
+                <div class="timeline-body">
+                  <b>Action: </b>Uploaded <b><?php echo $gtdocs['name']; ?></b> to CIC Portal.
+                </div>
+                <div class="timeline-footer">
+                  <!-- <p><?php echo $gtdocs['fld_registration_uploaded_by']; ?></p> -->
+                  <!-- <a class="btn btn-primary btn-sm">Read more</a> -->
+                  <!-- <a class="btn btn-danger btn-sm">Delete</a> -->
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <!-- timeline time label -->
+            <?php
+              if (!$gtdocs['fld_re_ts'] or $gtdocs['fld_re_resend_link_ts'] and $gtdocs['fld_process_status'] == 1) {
+            ?>
+            <div class="time-label">
+              <span class="bg-gray">Waiting</span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-clock bg-gray"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i></span>
+                <h3 class="timeline-header"><a href="#">Online Registration</a></h3>
+                <div class="timeline-body">
+                  <p>Pending Online Registration</p>
+                  <p>
+                      <?php
+                        if ($gtdocs['fld_re_resend_link_ts'] and $gtdocs['fld_process_status'] == 1) {
+                          echo "Online Registration resent by: ".$gtdocs['fld_re_resend_link_bu']."<br>Date Time: ".date("F d, Y h:ia", strtotime($gtdocs['fld_re_resend_link_ts']));
+                        }
+                      ?>
+
+                  </p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              } elseif ($gtdocs['fld_re_ts'] and !$gtdocs['fld_re_resend_link_ts'] or $gtdocs['fld_re_resend_link_ts'] and $gtdocs['fld_process_status'] > 1) {
+            ?>
+            <div class="time-label">
+              <span class="bg-green"><?php echo date("d M. Y", strtotime($gtdocs['fld_re_ts'])); ?></span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-registered bg-green"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i> <?php echo date("h:ia", strtotime($gtdocs['fld_re_ts'])); ?></span>
+                <h3 class="timeline-header"><a href="#">Online Registration</a></h3>
+                <div class="timeline-body">
+                  <p><b>Action: </b>Successfully registered.</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              }
+            ?>
+
+            <?php
+              if($responseCode != 200){
+            ?>
+            <div class="time-label">
+              <span class="bg-gray">Waiting</span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-clock bg-gray"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i></span>
+                <h3 class="timeline-header"><a href="#">DMS SEIS Attachments Upload</a></h3>
+                <div class="timeline-body">
+                  <p>Pending Documents Upload/Awaiting SE to submit documents</p>
+                  <p>check <?php echo $remoteFile; ?></p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              } elseif($responseCode == 200){
+            ?>
+            <div class="time-label">
+              <span class="bg-green">UPLOADED<!-- <?php echo date("d M. Y", strtotime($gtdocs['fld_re_ts'])); ?> --></span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-check bg-green"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i> <!-- <?php echo date("h:ia", strtotime($gtdocs['fld_re_ts'])); ?> --></span>
+                <h3 class="timeline-header"><a href="#">DMS SEIS Attachments Upload</a></h3>
+                <div class="timeline-body">
+                  <p><b>Action: </b>Successfully uploaded.</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              }
+            ?>
+
+            <!-- RE VALIDATION -->
+            <?php
+              if ($gtdocs['fld_re_validation_status'] == 0) {
+            ?>
+            <div class="time-label">
+              <span class="bg-gray">Waiting</span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-clock bg-gray"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i></span>
+                <h3 class="timeline-header"><a href="#">RE Validation</a></h3>
+                <div class="timeline-body">
+                  <p>Pending RE Validation</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              } elseif ($gtdocs['fld_re_validation_status'] == 2) {
+            ?>
+            <div class="time-label">
+              <span class="bg-red"><?php echo date("d M. Y", strtotime($gtdocs['fld_re_validation_incom_ts'])); ?></span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-check bg-red"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i> <?php echo date("h:ia", strtotime($gtdocs['fld_re_validation_incom_ts'])); ?></span>
+                <h3 class="timeline-header"><a href="#">RE Validation</a> - <?php echo $gtdocs['fld_re_validation_by']; ?></h3>
+                <div class="timeline-body">
+                  <p><b>Action: </b>Tagged as Incomplete or Decrepancy in documents submitted by the Entity.</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              } elseif ($gtdocs['fld_re_validation_status'] == 1) {
+            ?>
+            <div class="time-label">
+              <span class="bg-green"><?php echo date("d M. Y", strtotime($gtdocs['fld_re_validation_ts'])); ?></span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-check bg-green"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i> <?php echo date("h:ia", strtotime($gtdocs['fld_re_validation_ts'])); ?></span>
+                <h3 class="timeline-header"><a href="#">RE Validation</a> - <?php echo $gtdocs['fld_re_validation_by']; ?></h3>
+                <div class="timeline-body">
+                  <p><b>Action: </b> - Validated</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              }
+            ?>
+
+            <!-- RE Validation Approval -->
+            <?php
+              if ($gtdocs['fld_re_approval_status'] == 0) {
+            ?>
+            <div class="time-label">
+              <span class="bg-gray">Waiting</span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-clock bg-gray"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i></span>
+                <h3 class="timeline-header"><a href="#">RE Validation Approval</a></h3>
+                <div class="timeline-body">
+                  <p>Pending RE Validation Approval</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              } elseif ($gtdocs['fld_re_approval_status'] == 2) {
+            ?>
+            <div class="time-label">
+              <span class="bg-red"><?php echo date("d M. Y", strtotime($gtdocs['fld_re_approval_rej_ts'])); ?></span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-check bg-red"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i> <?php echo date("h:ia", strtotime($gtdocs['fld_re_approval_rej_ts'])); ?></span>
+                <h3 class="timeline-header"><a href="#">RE Validation Approval</a> - <?php echo $gtdocs['fld_re_approval_by']; ?></h3>
+                <div class="timeline-body">
+                  <p><b>Action: </b> Rejected</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              } elseif ($gtdocs['fld_re_approval_status'] == 1) {
+            ?>
+            <div class="time-label">
+              <span class="bg-green"><?php echo date("d M. Y", strtotime($gtdocs['fld_re_approval_ts'])); ?></span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-check bg-green"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i> <?php echo date("h:ia", strtotime($gtdocs['fld_re_approval_ts'])); ?></span>
+                <h3 class="timeline-header"><a href="#">RE Validation Approval</a> - <?php echo $gtdocs['fld_re_approval_by']; ?></h3>
+                <div class="timeline-body">
+                  <p><b>Action: </b> Approved</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              }
+            ?>
+          </div>
+          <br/><br/>
+        </div>
+        <div class="tab-pane fade" id="custom-content-below-uat" role="tabpanel" aria-labelledby="custom-content-below-uat-tab">
+          <br/><br/>
+          <div class="timeline">
+            <!-- CE Portal Sending of Credentials -->
+            <?php
+              if ($gtdocs['fld_uat_ceportal_sent'] == 0) {
+            ?>
+            <div class="time-label">
+              <span class="bg-gray">Waiting</span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-clock bg-gray"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i></span>
+                <h3 class="timeline-header"><a href="#">CE Portal</a></h3>
+                <div class="timeline-body">
+                  <p>Pending CE Portal Sending</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              } elseif ($gtdocs['fld_uat_ceportal_sent'] == 2) {
+            ?>
+            <div class="time-label">
+              <span class="bg-green"><?php echo date("d M. Y", strtotime($gtdocs['fld_uat_ceportal_sent_ts'])); ?></span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-check bg-green"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i> <?php echo date("h:ia", strtotime($gtdocs['fld_uat_ceportal_sent_ts'])); ?></span>
+                <h3 class="timeline-header"><a href="#">CE Portal</a> - System (CIC Portal)</h3>
+                <div class="timeline-body">
+                  <p><b>Action: </b> Access to CE Portal</p>
+                  <p><b>User: </b><?php if(!empty($gtdocs['email_c1'])){ echo $gtdocs['fname_c1']. " " .$gtdocs['mname_c1']. " " .$gtdocs['lname_c1']. " " .$gtdocs['extname_c1']; } ?></p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              }
+            ?>
+
+            <!-- Adding of Batch Operators (UAT) -->
+            <!-- CE Portal Sending of Credentials -->
+            <?php
+              
+              if (!$cuo['fld_oid']) {
+            ?>
+            <div class="time-label">
+              <span class="bg-gray">Waiting</span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-clock bg-gray"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i></span>
+                <h3 class="timeline-header"><a href="#">CE Portal</a></h3>
+                <div class="timeline-body">
+                  <p>Pending Registration of Batch Operators (UAT)</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              } elseif ($cuo['fld_oid']) {
+            ?>
+            <div class="time-label">
+              <span class="bg-green"><?php echo date("d M. Y", strtotime($gtdocs['fld_batch_ops_reg'])); ?></span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-user-plus bg-green"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i> <?php echo date("h:ia", strtotime($gtdocs['fld_batch_ops_reg'])); ?></span>
+                <h3 class="timeline-header"><a href="#">CE Portal</a> - <?php if(!empty($gtdocs['email_c1'])){ echo $gtdocs['fname_c1']. " " .$gtdocs['mname_c1']. " " .$gtdocs['lname_c1']. " " .$gtdocs['extname_c1']; } ?></h3>
+                <div class="timeline-body">
+                  <p><b>Action: </b> Added Batch Operators (UAT)</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              }
+            ?>
+
+            <!-- Batch Operators Credentials Generations (UAT) -->
+            <?php
+              if ($gtdocs['fld_batch_uat_creds_status'] == 0) {
+            ?>
+            <div class="time-label">
+              <span class="bg-gray">Waiting</span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-clock bg-gray"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i></span>
+                <h3 class="timeline-header"><a href="#">Batch Credentials Generation (UAT)</a></h3>
+                <div class="timeline-body">
+                  <p>Pending Batch Operators (UAT) Credentials Generation</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              } elseif ($gtdocs['fld_batch_uat_creds_status'] == 1) {
+            ?>
+            <div class="time-label">
+              <span class="bg-green"><?php echo date("d M. Y", strtotime($gtdocs['fld_batch_uat_creds_ts'])); ?></span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-key bg-green"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i> <?php echo date("h:ia", strtotime($gtdocs['fld_batch_uat_creds_ts'])); ?></span>
+                <h3 class="timeline-header"><a href="#">Batch Credentials Generation (UAT)</a> - <?php  echo $gtdocs['fld_batch_uat_creds_by']; ?></h3>
+                <div class="timeline-body">
+                  <p><b>Action: </b> Generated Batch Credentials</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              }
+            ?>
+
+            <!-- Adding of WEB Operators (UAT) -->
+            <?php
+              
+              if ($gtdocs['fld_web_ops_reg'] == '') {
+            ?>
+            <div class="time-label">
+              <span class="bg-gray">Waiting</span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-clock bg-gray"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i></span>
+                <h3 class="timeline-header"><a href="#">CE Portal</a></h3>
+                <div class="timeline-body">
+                  <p>Pending Registration of Web Operators (UAT)</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              } elseif ($gtdocs['fld_web_ops_reg']) {
+            ?>
+            <div class="time-label">
+              <span class="bg-green"><?php echo date("d M. Y", strtotime($gtdocs['fld_web_ops_reg'])); ?></span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-user-plus bg-green"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i> <?php echo date("h:ia", strtotime($gtdocs['fld_web_ops_reg'])); ?></span>
+                <h3 class="timeline-header"><a href="#">CE Portal</a> - <?php if(!empty($gtdocs['email_c1'])){ echo $gtdocs['fname_c1']. " " .$gtdocs['mname_c1']. " " .$gtdocs['lname_c1']. " " .$gtdocs['extname_c1']; } ?></h3>
+                <div class="timeline-body">
+                  <p><b>Action: </b> Added Web Operators (UAT)</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              }
+            ?>
+
+            <!-- Web Operators Credentials Generations (UAT) -->
+            <?php
+              if ($gtdocs['fld_web_uat_creds_status'] == 0) {
+            ?>
+            <div class="time-label">
+              <span class="bg-gray">Waiting</span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-clock bg-gray"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i></span>
+                <h3 class="timeline-header"><a href="#">Credentials Generation (UAT)</a></h3>
+                <div class="timeline-body">
+                  <p>Pending Web Operators (UAT) Credentials Generation</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              } elseif ($gtdocs['fld_web_uat_creds_status'] == 1) {
+            ?>
+            <div class="time-label">
+              <span class="bg-green"><?php echo date("d M. Y", strtotime($gtdocs['fld_web_uat_creds_ts'])); ?></span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-key bg-green"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i> <?php echo date("h:ia", strtotime($gtdocs['fld_web_uat_creds_ts'])); ?></span>
+                <h3 class="timeline-header"><a href="#">Web Credentials Generation (UAT)</a> - <?php  echo $gtdocs['fld_web_uat_creds_by']; ?></h3>
+                <div class="timeline-body">
+                  <p><b>Action: </b> Generated Web Credentials</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              }
+            ?>
+
+
+
+            <!-- Assign Operators to SE -->
+            <?php
+              if ($gtdocs['fld_assignedto'] == '') {
+            ?>
+            <div class="time-label">
+              <span class="bg-gray">Waiting</span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-clock bg-gray"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i></span>
+                <h3 class="timeline-header"><a href="#">Assign CIC Operator</a></h3>
+                <div class="timeline-body">
+                  <p>Pending CIC Operator - Assign an Operator to the SE to proceed</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              } elseif ($gtdocs['fld_assignedto']) {
+            ?>
+            <div class="time-label">
+              <span class="bg-green">DONE</span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-key bg-green"></i>
+              <div class="timeline-item">
+                <span class="time"></span>
+                <h3 class="timeline-header"><a href="#">Assigned Operator</a></h3>
+                <div class="timeline-body">
+                  <p><b>Action: </b> Assigned SE to OPS - <?php echo $oprtrs[$gtdocs['fld_assignedto']]; ?></p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              }
+            ?>
+
+            <!-- SE Testing -->
+            <?php
+              if ($gtdocs['fld_se_testing_status'] == 0) {
+            ?>
+            <div class="time-label">
+              <span class="bg-gray">Waiting</span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-clock bg-gray"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i></span>
+                <h3 class="timeline-header"><a href="#">SE Testing Completion</a></h3>
+                <div class="timeline-body">
+                  <p>Pending Teting Phase</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              } elseif ($gtdocs['fld_se_testing_status'] >= 1) {
+            ?>
+            <div class="time-label">
+              <span class="bg-green"><?php echo date("F d, Y", strtotime($gtdocs['fld_se_testing_ts'])); ?></span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-key bg-green"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i> <?php echo date("h:ia", strtotime($gtdocs['fld_se_testing_ts'])); ?></span>
+                <h3 class="timeline-header"><a href="#">SE Testing Completion</a></h3>
+                <div class="timeline-body">
+                  <p><b>Action: </b> Completed Testing Phase by <?php echo $gtdocs['fld_se_testing_by']; ?></p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              }
+            ?>
+
+            <!-- SE Validation -->
+            <?php
+              if ($gtdocs['fld_se_testing_status'] == 1) {
+            ?>
+            <div class="time-label">
+              <span class="bg-gray">Waiting</span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-clock bg-gray"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i></span>
+                <h3 class="timeline-header"><a href="#">SE Validation Completion</a></h3>
+                <div class="timeline-body">
+                  <p>Pending Validation Phase</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              } elseif ($gtdocs['fld_se_testing_status'] >= 2) {
+            ?>
+            <div class="time-label">
+              <span class="bg-green"><?php echo date("F d, Y", strtotime($gtdocs['fld_se_validation_ts'])); ?></span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-key bg-green"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i> <?php echo date("h:ia", strtotime($gtdocs['fld_se_validation_ts'])); ?></span>
+                <h3 class="timeline-header"><a href="#">SE Validation Completion</a></h3>
+                <div class="timeline-body">
+                  <p><b>Action: </b> Completed Validation Phase by <?php echo $gtdocs['fld_se_validation_by']; ?></p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              }
+            ?>
+
+            <!-- SE Prod Confirmation -->
+            <?php
+              if ($gtdocs['fld_se_testing_status'] == 2) {
+            ?>
+            <div class="time-label">
+              <span class="bg-gray">Waiting</span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-clock bg-gray"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i></span>
+                <h3 class="timeline-header"><a href="#">SE Prod Confirmation</a></h3>
+                <div class="timeline-body">
+                  <p>Pending Prod Confirmation</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              } elseif ($gtdocs['fld_se_testing_status'] == 3) {
+            ?>
+            <div class="time-label">
+              <span class="bg-green"><?php echo date("F d, Y", strtotime($gtdocs['fld_se_confirmed_ts'])); ?></span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-key bg-green"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i> <?php echo date("h:ia", strtotime($gtdocs['fld_se_confirmed_ts'])); ?></span>
+                <h3 class="timeline-header"><a href="#">SE Prod Confirmation</a></h3>
+                <div class="timeline-body">
+                  <p><b>Action: </b> Prod Confirmed by <?php echo $gtdocs['fld_se_confirmed_by']; ?></p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              }
+            ?>
+          </div>
+          <br/><br/>
+        </div>
+        <div class="tab-pane fade" id="custom-content-below-se" role="tabpanel" aria-labelledby="custom-content-below-se-tab">
+          <br/><br/>
+          <div class="timeline">
+            <!-- CE Portal Prod modules -->
+            <?php
+              if ($gtdocs['fld_se_testing_status'] != 3) {
+            ?>
+            <div class="time-label">
+              <span class="bg-gray">Waiting</span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-clock bg-gray"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i></span>
+                <h3 class="timeline-header"><a href="#">CE Portal Prod Modules Access</a></h3>
+                <div class="timeline-body">
+                  <p>Pending CE Portal Prod Modules Access: Dispute, CTNLA, Connectivity</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              } elseif ($gtdocs['fld_se_testing_status'] == 3) {
+            ?>
+            <div class="time-label">
+              <span class="bg-green"><?php echo date("F d, Y", strtotime($gtdocs['fld_se_confirmed_ts'])); ?></span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-key bg-green"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i> <?php echo date("h:ia", strtotime($gtdocs['fld_se_confirmed_ts'])); ?></span>
+                <h3 class="timeline-header"><a href="#">CE Portal Prod Modules Access</a></h3>
+                <div class="timeline-body">
+                  <p><b>Action: </b> CE Portal Prod Modules (Dispute, CTNLA, Connectivity) are now accessible.</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              }
+            ?>
+
+            <!-- CE Portal Prod modules - Dispute Registration -->
+            <?php
+              if ($gtdocs['fld_disp_email'] == '') {
+            ?>
+            <div class="time-label">
+              <span class="bg-gray">Waiting</span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-clock bg-gray"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i></span>
+                <h3 class="timeline-header"><a href="#">Dispute Contact Person Registration</a></h3>
+                <div class="timeline-body">
+                  <p>Pending Dispute Contact Person Registration</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              } elseif ($gtdocs['fld_disp_email']) {
+                $get_dispute_registration = $dbh4->query("SELECT fld_form, fld_ts FROM tbupdatesaudit WHERE fld_ctrlno = '".$gtdocs['fld_ctrlno']."' and fld_form = 'PDRCPN'");
+                $gdr=$get_dispute_registration->fetch_array();
+            ?>
+            <div class="time-label">
+              <span class="bg-green"><?php echo date("F d, Y", strtotime($gdr['fld_ts'])); ?></span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-key bg-green"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i> <?php echo date("h:ia", strtotime($gdr['fld_ts'])); ?></span>
+                <h3 class="timeline-header"><a href="#">Dispute Contact Person Registration</a></h3>
+                <div class="timeline-body">
+                  <p><b>Action: </b> Registered Dispute Contact Person</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              }
+            ?>
+
+            <!-- DRCP Confirmation -->
+            <?php
+              if ($gtdocs['fld_disp_status'] == 0) {
+            ?>
+            <div class="time-label">
+              <span class="bg-gray">Waiting</span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-clock bg-gray"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i></span>
+                <h3 class="timeline-header"><a href="#">Dispute Contact Person</a></h3>
+                <div class="timeline-body">
+                  <p>Pending Dispute Contact Person Confirmation</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              } elseif ($gtdocs['fld_disp_status'] == 1) {
+            ?>
+            <div class="time-label">
+              <span class="bg-green"><?php echo date("F d, Y", strtotime($gtdocs['fld_disp_emailsent'])); ?></span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-key bg-green"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i> <?php echo date("h:ia", strtotime($gtdocs['fld_disp_emailsent'])); ?></span>
+                <h3 class="timeline-header"><a href="#">Dispute Contact Person Email Confirmation</a></h3>
+                <div class="timeline-body">
+                  <p><b>Action: </b> Dispute Contact Person Email Confirmation Sent</p>
+                  <p><b>Pending: </b> Dispute Confirmation</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              } elseif ($gtdocs['fld_disp_status'] == 2) {
+            ?>
+            <div class="time-label">
+              <span class="bg-green"><?php echo date("F d, Y", strtotime($gtdocs['fld_disp_emailconfirmed'])); ?></span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-key bg-green"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i> <?php echo date("h:ia", strtotime($gtdocs['fld_disp_emailconfirmed'])); ?></span>
+                <h3 class="timeline-header"><a href="#">Dispute Contact Person Email Confirmation</a></h3>
+                <div class="timeline-body">
+                  <p><b>Email Confirmation Sent:</b> <?php echo date("F d, Y h:ia", strtotime($gtdocs['fld_disp_emailsent'])); ?></p>
+                  <p><b>Action: </b> Dispute Contact Person Email Confirmed - <?php echo $gtdocs['disp_contact_email']; ?></p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              }
+            ?>
+
+            <!-- CE Portal Prod modules - Connectivity Registration -->
+            <?php
+              if ($gtdocs['fld_ip'] == '') {
+            ?>
+            <div class="time-label">
+              <span class="bg-gray">Waiting</span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-clock bg-gray"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i></span>
+                <h3 class="timeline-header"><a href="#">Connectivity Registration</a></h3>
+                <div class="timeline-body">
+                  <p>Pending Connectivity Registration</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              } elseif ($gtdocs['fld_ip']) {
+                $get_dispute_registration = $dbh4->query("SELECT fld_form, fld_ts FROM tbupdatesaudit WHERE fld_ctrlno = '".$gtdocs['fld_ctrlno']."' and fld_form = 'PDRCPN'");
+                $gdr=$get_dispute_registration->fetch_array();
+            ?>
+            <div class="time-label">
+              <span class="bg-green"><?php echo date("F d, Y", strtotime($gdr['fld_ts'])); ?></span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-key bg-green"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i> <?php echo date("h:ia", strtotime($gdr['fld_ts'])); ?></span>
+                <h3 class="timeline-header"><a href="#">Connectivity Registration</a></h3>
+                <div class="timeline-body">
+                  <p><b>Action: </b> Registered Connectivity</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              }
+            ?>
+
+            <?php
+              if ($gtdocs['fld_status'] == 0) {
+            ?>
+            <div class="time-label">
+              <span class="bg-gray">Waiting</span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-clock bg-gray"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i></span>
+                <h3 class="timeline-header"><a href="#">Connectivity Assessment</a></h3>
+                <div class="timeline-body">
+                  <p>Pending Connectivity Assessment</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              } elseif ($gtdocs['fld_status'] == 2) {
+            ?>
+            <div class="time-label">
+              <span class="bg-red"><?php echo date("F d, Y", strtotime($gdr['fld_ts'])); ?></span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-rss bg-red"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i> <?php echo date("h:ia", strtotime($gdr['fld_ts'])); ?></span>
+                <h3 class="timeline-header"><a href="#">Connectivity Assessment</a></h3>
+                <div class="timeline-body">
+                  <p><b>Action: </b> Rejected Registered Connectivity</p>
+                  <p><b>Remarks: </b> <?php echo $gtdocs['fld_ip_remarks']; ?></p>
+                  <p><b>Email sent to:</b> <?php echo $gtdocs['fname_ar']. " " .$gtdocs['mname_ar']. " " .$gtdocs['lname_ar']. " - " .$gtdocs['email_ar']. " : " .date("F d, Y h:ia", strtotime($gtdocs['fld_change_ip_validate_ts'])); ?></p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              } elseif ($gtdocs['fld_status'] == 1) {
+            ?>
+            <div class="time-label">
+              <span class="bg-green"><?php echo date("F d, Y", strtotime($gdr['fld_ts'])); ?></span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-key bg-green"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i> <?php echo date("h:ia", strtotime($gdr['fld_ts'])); ?></span>
+                <h3 class="timeline-header"><a href="#">Connectivity Assessment</a></h3>
+                <div class="timeline-body">
+                  <p><b>Action: </b> Approved Connectivity</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              }
+            ?>
+
+            <?php
+            if (($gtdocs['fld_numacct_indv'] + $gtdocs['fld_numacct_comp']) > 0 && ($gtdocs['fld_numacct_inst'] + $gtdocs['fld_numacct_noninst'] + $gtdocs['fld_numacct_cc'] + $gtdocs['fld_numacct_util']) > 0) {
+              $get_event = $dbh4->query("SELECT fld_form, fld_ts FROM tbupdatesaudit WHERE fld_ctrlno = '".$gtdocs['fld_ctrlno']."' and fld_form = 'PCTNLAB' ORDER BY fld_ts DESC LIMIT 1");
+              $ge=$get_event->fetch_array();
+            ?>
+            <div class="time-label">
+              <span class="bg-green"><?php echo date("F d, Y", strtotime($ge['fld_ts'])); ?></span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-key bg-green"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i> <?php echo date("h:ia", strtotime($ge['fld_ts'])); ?></span>
+                <h3 class="timeline-header"><a href="#">CTNLA Registration</a></h3>
+                <div class="timeline-body">
+                  <p><b>Action: </b> Registered CTNLA</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              }else{
+            ?>
+            <div class="time-label">
+              <span class="bg-gray">Waiting</span>
+            </div>
+            <!-- /.timeline-label -->
+            <!-- timeline item -->
+            <div>
+              <i class="fa fa-clock bg-gray"></i>
+              <div class="timeline-item">
+                <span class="time"><i class="fas fa-clock"></i></span>
+                <h3 class="timeline-header"><a href="#">CTNLA Registration</a></h3>
+                <div class="timeline-body">
+                  <p>Pending CTNLA Registration</p>
+                </div>
+              </div>
+            </div>
+            <!-- END timeline item -->
+            <?php
+              }
+            ?>
+
+
+
+            <?php
+              $noc = $dbh4->query("SELECT fld_noc_ts, fld_noc_pass_status, fld_noc_done_by FROM tbentities WHERE fld_ctrlno = '".$gtdocs['fld_ctrlno']."'");
+              $rownoc = $noc->fetch_array();
+
+              if (!$rownoc['fld_noc_ts'] and $rownoc['fld_noc_pass_status'] == 0) {
+            ?>
+                <div class="time-label">
+                  <span class="bg-gray">Waiting</span>
+                </div>
+                <!-- /.timeline-label -->
+                <!-- timeline item -->
+                <div>
+                  <i class="fa fa-clock bg-gray"></i>
+                  <div class="timeline-item">
+                    <span class="time"><i class="fas fa-clock"></i></span>
+                    <h3 class="timeline-header"><a href="#">SEIS</a> NOC Credentials</h3>
+                    <div class="timeline-body">
+                      <p></p>
+                    </div>
+                  </div>
+                </div>
+                <!-- END timeline item -->
+            <?php
+              } elseif ($rownoc['fld_noc_ts'] and $rownoc['fld_noc_pass_status'] == 1) {
+            ?>
+                <div class="time-label">
+                  <span class="bg-green">
+                    <?php $nocts = strtotime($rownoc['fld_noc_ts']); echo date("F d, Y", $nocts);?>
+                  </span>
+                </div>
+                <!-- /.timeline-label -->
+                <!-- timeline item -->
+                <div>
+                  <i class="fa fa-clock bg-green"></i>
+                  <div class="timeline-item">
+                    <span class="time"><i class="fa fa-clock-o"></i> <?php echo date("h:ia", $nocts); ?></span>
+                    <h3 class="timeline-header"><a href="#">SEIS</a> NOC Credentials</h3>
+                    <div class="timeline-body">
+                      <p><b>Done by: </b><?php echo $rownoc['fld_noc_done_by']; ?></p>
+                    </div>
+                  </div>
+                </div>
+                <!-- END timeline item -->
+            <?php
+              }
+            ?>
+
+
+
+          </div>
+          <br/><br/>
+        </div>
+        <!-- <div class="tab-pane fade" id="custom-content-below-dqua" role="tabpanel" aria-labelledby="custom-content-below-dqua-tab"> -->
+          <!-- <br/><br/> -->
+          <!-- <div class="timeline"> -->
+            <?php
+              // $get_pae = $dbh4->query("SELECT * FROM tbpae WHERE fld_provcode = '".$gtdocs['provcode']."' and fld_dqua_emailsent IS NOT NULL");
+              // $gp=$get_pae->fetch_array();
+              // if (!$gp['fld_provcode']) {
+            ?>
+              <!-- <div class="time-label"> -->
+                <!-- <span class="bg-gray"> -->
+                  <!-- Waiting -->
+                <!-- </span>
+              </div> -->
+              <!-- /.timeline-label -->
+              <!-- timeline item -->
+              <!-- <div> -->
+                <!-- <i class="fa fa-clock bg-gray"></i> -->
+                <!-- <div class="timeline-item"> -->
+                  <!-- <span class="time"><i class="fa fa-clock-o"></i></span> -->
+                  <!-- <h3 class="timeline-header"><a href="#">DQUA</a> Waiting to be Potential Accessing Entity</h3> -->
+                <!-- </div> -->
+              <!-- </div> -->
+              <!-- END timeline item -->
+            <?php
+              //} elseif ($gp['fld_provcode']) {
+            ?>
+              <!-- <div class="time-label">
+                <span class="bg-green"> -->
+                  <?php //$ceapprove_ts = strtotime($gp['fld_date_listed']); echo date("F d, Y", $ceapprove_ts); ?>
+                <!-- </span>
+              </div> -->
+              <!-- /.timeline-label -->
+              <!-- timeline item -->
+              <!-- <div>
+                <i class="fa fa-clock bg-green"></i>
+                <div class="timeline-item">
+                  <span class="time">><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $ceapprove_ts);; ?></span>
+                  <h3 class="timeline-header"><a href="#">DQUA</a> Potential Accessing Entity</h3>
+                  <div class="timeline-body">
+                    <p><b>Validated by: </b></i> CIC Portal</p>
+                  </div>
+                </div>
+              </div> -->
+              <!-- END timeline item -->
+            <?php
+              //}
+            ?>
+
+
+
+            <?php
+              //$get_uploaded_enga = $dbh4->query("SELECT fld_ts FROM tbenga_uploads WHERE fld_ctrlno = '".$gtdocs['fld_ctrlno']."' ORDER BY fld_ts DESC LIMIT 1");
+              //$gue=$get_uploaded_enga->fetch_array();
+              //if (!$gue['fld_ts']) {
+            ?>
+              <!-- <div class="time-label">
+                <span class="bg-gray">
+                  Waiting
+                </span>
+              </div> -->
+              <!-- /.timeline-label -->
+              <!-- timeline item -->
+              <!-- <div>
+                <i class="fa fa-clock bg-gray"></i>
+                <div class="timeline-item">
+                  <span class="time"><i class="fa fa-clock-o"></i></span>
+                  <h3 class="timeline-header"><a href="#">DQUA</a> Awaiting Engagement Agreement Upload (DMS)</h3>
+                </div>
+              </div> -->
+              <!-- END timeline item -->
+            <?php
+              //} elseif ($gue['fld_ts']) {
+            ?>
+              <!-- <div class="time-label">
+                <span class="bg-green"> -->
+                  <?php
+                   //$dqua_enga_ts = strtotime($gue['fld_ts']); echo date("F d, Y", $dqua_enga_ts); 
+                  ?>
+                <!-- </span>
+              </div> -->
+              <!-- /.timeline-label -->
+              <!-- timeline item -->
+              <!-- <div>
+                <i class="fa fa-clock bg-green"></i>
+                <div class="timeline-item">
+                  <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $dqua_enga_ts); ?></span>
+                  <h3 class="timeline-header"><a href="#">DQUA</a> Engagement Agreement Uploaded</h3>
+                </div>
+              </div> -->
+              <!-- END timeline item -->
+            <?php
+              //}
+            ?>
+
+
+
+            <?php
+              //if ($gtdocs['fld_dqua_validation_status'] == 0) {
+            ?>
+              <!-- <div class="time-label">
+                <span class="bg-gray">
+                  Waiting
+                </span>
+              </div> -->
+              <!-- /.timeline-label -->
+              <!-- timeline item -->
+              <!-- <div>
+                <i class="fa fa-clock bg-gray"></i>
+                <div class="timeline-item">
+                  <span class="time"><i class="fa fa-clock-o"></i></span>
+                  <h3 class="timeline-header"><a href="#">DQUA</a> Validation of Engagement Agreement</h3>
+                </div>
+              </div> -->
+              <!-- END timeline item -->
+            <?php
+              //} elseif ($gtdocs['fld_dqua_validation_status'] == 1) {
+            ?>
+              <!-- <div class="time-label">
+                <span class="bg-green"> -->
+                  <?php
+                   //$dqua_validation_ts = strtotime($gtdocs['fld_dqua_validation_appr_ts']); echo date("F d, Y", $dqua_validation_ts); 
+                  ?>
+                <!-- </span>
+              </div> -->
+              <!-- /.timeline-label -->
+              <!-- timeline item -->
+              <!-- <div> -->
+                <!-- <i class="fa fa-clock bg-green"></i>
+                <div class="timeline-item">
+                  <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $dqua_validation_ts); ?></span>
+                  <h3 class="timeline-header"><a href="#">DQUA</a> Validation of Engagement Agreement</h3>
+                  <div class="timeline-body">
+                    <p><b>Recommended by: </b><?php //echo $gtdocs['fld_dqua_validation_by']; ?></p>
+                  </div>
+                </div>
+              </div> -->
+              <!-- END timeline item -->
+            <?php
+              //} elseif ($gtdocs['fld_dqua_validation_status'] == 2) {
+            ?>
+              <!-- <div class="time-label">
+                <span class="bg-green"> -->
+                  <?php
+                   //$dqua_validation_ts = strtotime($gtdocs['fld_dqua_validation_rej_ts']); echo date("F d, Y", $dqua_validation_ts); 
+                  ?>
+                <!-- </span>
+              </div> -->
+              <!-- /.timeline-label -->
+              <!-- timeline item -->
+              <!-- <div>
+                <i class="fa fa-clock bg-green"></i>
+                <div class="timeline-item">
+                  <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $dqua_validation_ts); ?></span>
+                  <h3 class="timeline-header"><a href="#">DQUA</a> Validation of Engagement Agreement Approval (2nd Level)</h3>
+                  <div class="timeline-body">
+                    <p><b>Rejected by: </b><?php //echo $gtdocs['fld_dqua_validation_by']; ?></p>
+                  </div>
+                </div>
+              </div> -->
+              <!-- END timeline item -->
+            <?php
+              //}
+            ?>
+
+
+
+            <?php
+              //if ($gtdocs['fld_dqua_validation_approval_status'] == 0) {
+            ?>
+              <!-- <div class="time-label">
+                <span class="bg-gray">
+                  Waiting
+                </span>
+              </div> -->
+              <!-- /.timeline-label -->
+              <!-- timeline item -->
+              <!-- <div>
+                <i class="fa fa-clock bg-gray"></i>
+                <div class="timeline-item">
+                  <span class="time"><i class="fa fa-clock-o"></i></span>
+                  <h3 class="timeline-header"><a href="#">DQUA</a> Validation of Engagement Agreement Approval (2nd Level)</h3>
+                </div>
+              </div> -->
+              <!-- END timeline item -->
+            <?php
+              //} elseif ($gtdocs['fld_dqua_validation_approval_status'] == 1) {
+            ?>
+              <!-- <div class="time-label">
+                <span class="bg-green">
+                  Waiting
+                </span>
+              </div> -->
+              <!-- /.timeline-label -->
+              <!-- timeline item -->
+              <!-- <div>
+                <i class="fa fa-clock bg-green"></i>
+                <div class="timeline-item">
+                  <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $dqua_validation_ts); ?></span>
+                  <h3 class="timeline-header"><a href="#">DQUA</a> Validation of Engagement Agreement Approval (2nd Level)</h3>
+                  <div class="timeline-body">
+                    <p><b>Approved by: </b><?php //echo $gtdocs['fld_dqua_validation_approval_by']; ?></p>
+                  </div>
+                </div>
+              </div> -->
+              <!-- END timeline item -->
+            <?php
+              //} elseif ($gtdocs['fld_dqua_validation_approval_status'] == 2) {
+            ?>
+              <!-- <div class="time-label">
+                <span class="bg-green">
+                  <?php
+                   //$dqua_validation_ts = strtotime($gtdocs['fld_dqua_validation_approval_rej_ts']); echo date("F d, Y", $dqua_validation_ts); 
+                  ?>
+                </span>
+              </div> -->
+              <!-- /.timeline-label -->
+              <!-- timeline item -->
+              <!-- <div>
+                <i class="fa fa-clock bg-green"></i>
+                <div class="timeline-item">
+                  <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $dqua_validation_ts); ?></span>
+                  <h3 class="timeline-header"><a href="#">DQUA</a> Validation of Engagement Agreement</h3>
+                  <div class="timeline-body">
+                    <p><b>Rejected by: </b><?php //echo $gtdocs['fld_dqua_validation_approval_by']; ?></p>
+                  </div>
+                </div>
+              </div> -->
+              <!-- END timeline item -->
+            <?php
+              //}
+            ?>
+
+
+
+            <?php
+              //if ($gtdocs['fld_dqua_cred_status'] == 0) {
+            ?>
+              <!-- <div class="time-label">
+                <span class="bg-gray">
+                    <i class="fa fa-clock-o bg-gray"></i> Waiting
+                </span>
+              </div>
+              <div>
+                <i class="fa fa-lock bg-gray"></i>
+
+                <div class="timeline-item">
+                  <span class="time"><i class="fa fa-clock-o"></i></span>
+
+                  <h3 class="timeline-header"><a href="#">DQUA</a> Access Credentials Generation</h3>
+                </div>
+              </div> -->
+            <?php
+              //} elseif ($gtdocs['fld_dqua_cred_status'] == 1) {
+            ?>
+              <!-- <div class="time-label">
+                <span class="bg-green"> -->
+                    <?php
+                     //$dqua_cred_ts = strtotime($gtdocs['fld_dqua_cred_ts']); echo date("F d, Y", $dqua_cred_ts); 
+                    ?>
+                <!-- </span>
+              </div>
+              <div>
+                <i class="fa fa-check bg-green"></i>
+
+                <div class="timeline-item">
+                  <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $dqua_cred_ts); ?></span> -->
+
+                  <!-- <h3 class="timeline-header"><a href="#">DQUA</a> Validation of Engagement Agreement</h3> -->
+                  <!-- <h3 class="timeline-header"><a href="#">DQUA</a> Access Credentials Generation</h3>
+                  <div class="timeline-body">
+                    <p><b>Generated by: </b><?php //echo $gtdocs['fld_dqua_cred_by']; ?></p>
+                  </div>
+                </div>
+              </div> -->
+            <?php
+              //}
+            ?>
+
+
+
+            <?php
+              //if ($gtdocs['fld_dqua_sae_cert_status'] == 0) {
+            ?>
+            <!-- <div class="time-label">
+              <span class="bg-gray">
+                  <i class="fa fa-clock-o bg-gray"></i> Waiting
+              </span>
+            </div>
+            <div>
+              <i class="fa fa-lock bg-gray"></i>
+
+              <div class="timeline-item">
+                <span class="time"><i class="fa fa-clock-o"></i></span>
+
+                <h3 class="timeline-header"><a href="#">DQUA</a> Awaiting Certificate of Purging from Selected SAE</h3>
+              </div>
+            </div>
+            <div>
+              <i class="fa fa-lock bg-gray"></i>
+
+              <div class="timeline-item">
+                <span class="time"><i class="fa fa-clock-o"></i></span>
+
+                <h3 class="timeline-header"><a href="#">DQUA</a> Pending Certificate of Purging Validation</h3>
+              </div>
+            </div> -->
+            <?php
+              //} elseif ($gtdocs['fld_dqua_sae_cert_status'] == 1) {
+            ?>
+            <!-- <div class="time-label">
+                <span class="bg-green"> -->
+                    <?php
+                     //$dqua_sae_cert_ts = strtotime($gtdocs['fld_dqua_sae_cert_ts']); echo date("F d, Y", $dqua_sae_cert_ts); 
+                    ?>
+                <!-- </span>
+              </div>
+              <div>
+                <i class="fa fa-check bg-green"></i>
+
+                <div class="timeline-item">
+                  <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $dqua_sae_cert_ts); ?></span>
+
+                  <h3 class="timeline-header"><a href="#">DQUA</a> Uploaded Certificate of Purging from Selected SAE</h3>
+                </div>
+              </div> -->
+              <?php  
+                //if ($gtdocs['fld_dqua_cert_status'] == 0) {
+              ?>
+                <!-- <div>
+                  <i class="fa fa-lock bg-gray"></i>
+
+                  <div class="timeline-item">
+                    <span class="time"><i class="fa fa-clock-o"></i></span>
+
+                    <h3 class="timeline-header"><a href="#">DQUA</a> Pending Certificate of Purging Validation</h3>
+                  </div>
+                </div> -->
+              <?php
+                //} elseif ($gtdocs['fld_dqua_cert_status'] == 1) {
+              ?>
+                <!-- <div class="time-label">
+                <span class="bg-green"> -->
+                    <?php
+                     //$dqua_cert_appr_ts = strtotime($gtdocs['fld_dqua_cert_appr_ts']); echo date("F d, Y", $dqua_cert_appr_ts); 
+                    ?>
+                <!-- </span>
+              </div>
+              <div>
+                <i class="fa fa-check bg-green"></i>
+
+                <div class="timeline-item">
+                  <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $dqua_cert_appr_ts); ?></span>
+
+                  <h3 class="timeline-header"><a href="#">DQUA</a> Certificate of Purging Validated</h3>
+                  <div class="timeline-body">
+                    <p><b>Approved by: </b><?php //echo $gtdocs['fld_dqua_cert_appr_by']; ?></p>
+                  </div>
+                </div>
+              </div> -->
+              <?php
+                //}
+              ?>
+            <?php
+              //}
+            ?>
+
+
+
+            <?php
+              //if ($gtdocs['fld_dqua_sae_report_status'] == 0) {
+            ?>
+            <!-- <div class="time-label">
+              <span class="bg-gray">
+                  <i class="fa fa-clock-o bg-gray"></i> Waiting
+              </span>
+            </div>
+            <div>
+              <i class="fa fa-lock bg-gray"></i>
+
+              <div class="timeline-item">
+                <span class="time"><i class="fa fa-clock-o"></i></span>
+
+                <h3 class="timeline-header"><a href="#">DQUA</a> Awaiting DQUA Report from Selected SAE</h3>
+              </div>
+            </div>
+            <div>
+              <i class="fa fa-lock bg-gray"></i>
+
+              <div class="timeline-item">
+                <span class="time"><i class="fa fa-clock-o"></i></span>
+
+                <h3 class="timeline-header"><a href="#">DQUA</a> Pending DQUA Report Validation</h3>
+              </div>
+            </div> -->
+            <?php
+              //} elseif ($gtdocs['fld_dqua_sae_report_status'] == 1) {
+            ?>
+            <!-- <div class="time-label">
+                <span class="bg-green"> -->
+                    <?php
+                     //$dqua_sae_report_ts = strtotime($gtdocs['fld_dqua_sae_report_ts']); echo date("F d, Y", $dqua_sae_report_ts); 
+                    ?>
+                <!-- </span>
+              </div>
+              <div>
+                <i class="fa fa-check bg-green"></i>
+
+                <div class="timeline-item">
+                  <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $dqua_sae_report_ts); ?></span>
+
+                  <h3 class="timeline-header"><a href="#">DQUA</a> Uploaded DQUA Report from Selected SAE</h3> -->
+                  <!-- <div class="timeline-body">
+                    <p><b>Uploaded by: </b><?php //echo $gtdocs['fld_dqua_cred_by']; ?></p>
+                  </div> -->
+                <!-- </div>
+              </div> -->
+              <?php  
+                //if ($gtdocs['fld_dqua_report_status'] == 0) {
+              ?>
+                <!-- <div>
+                  <i class="fa fa-lock bg-gray"></i>
+
+                  <div class="timeline-item">
+                    <span class="time"><i class="fa fa-clock-o"></i></span>
+
+                    <h3 class="timeline-header"><a href="#">DQUA</a> Pending DQUA Report Validation</h3>
+                  </div>
+                </div> -->
+              <?php
+                //} elseif ($gtdocs['fld_dqua_report_status'] == 1) {
+              ?>
+                <!-- <div class="time-label">
+                <span class="bg-green"> -->
+                    <?php
+                     //$dqua_report_appr_ts = strtotime($gtdocs['fld_dqua_report_appr_ts']); echo date("F d, Y", $dqua_report_appr_ts); 
+                    ?>
+                <!-- </span>
+              </div>
+              <div>
+                <i class="fa fa-check bg-green"></i>
+
+                <div class="timeline-item">
+                  <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $dqua_report_appr_ts); ?></span>
+
+                  <h3 class="timeline-header"><a href="#">DQUA</a> DQUA Report Validated</h3>
+                  <div class="timeline-body">
+                    <p><b>Approved by: </b><?php //echo $gtdocs['fld_dqua_report_by']; ?></p>
+                  </div>
+                </div>
+              </div> -->
+              <?php
+                //}
+              ?>
+            <?php
+              //}
+            ?>
+
+
+
+            <?php
+              //if (empty($gtdocs['fld_dqua_report_appr_ts']) and empty($gtdocs['fld_dqua_cert_appr_ts'])) {
+            ?>
+              <!-- <div class="time-label">
+                <span class="bg-gray">
+                    <i class="fa fa-clock-o bg-gray"></i> Waiting
+                </span>
+              </div>
+                <div>
+                  <i class="fa fa-lock bg-gray"></i>
+
+                  <div class="timeline-item">
+                    <span class="time"><i class="fa fa-clock-o"></i></span>
+
+                    <h3 class="timeline-header"><a href="#">DQUA</a> Process</h3>
+                  </div>
+                </div> -->
+             <?php
+              //} elseif ($gtdocs['fld_dqua_report_appr_ts'] and $gtdocs['fld_dqua_cert_appr_ts']) {
+             ?>
+              <!-- <div class="time-label">
+                <span class="bg-green"> -->
+                    <?php
+                    //  if ($gtdocs['fld_dqua_report_appr_ts'] > $gtdocs['fld_dqua_cert_appr_ts']) {
+                    //    $dqua_ts = $gtdocs['fld_dqua_report_appr_ts'];
+                    //  } elseif ($gtdocs['fld_dqua_report_appr_ts'] < $gtdocs['fld_dqua_cert_appr_ts']) {
+                    //    $dqua_ts = $gtdocs['fld_dqua_cert_appr_ts'];
+                    //  }
+                    //  $dqua_tss = strtotime($dqua_ts); echo date("F d, Y", $dqua_tss); 
+                    ?>
+                <!-- </span>
+              </div>
+              <div>
+                <i class="fa fa-check bg-green"></i>
+
+                <div class="timeline-item">
+                  <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $dqua_tss); ?></span>
+
+                  <h3 class="timeline-header"><a href="#">DQUA</a> Process</h3>
+                  <div class="timeline-body"> -->
+                    <!-- <p><b>ACCESS TYPE </b>Direct Access</p> -->
+                  <!-- </div>
+                </div>
+              </div> -->
+            <?php
+              //}
+            ?>
+          <!-- </div>
+          <br/><br/>
+        </div> -->
+        <!-- <div class="tab-pane fade" id="custom-content-below-ae" role="tabpanel" aria-labelledby="custom-content-below-ae-tab">
+          <br/><br/>
+          <div class="timeline"> -->
+            <?php
+              //if ($gtdocs['fld_access_type'] == 0) {
+            ?>
+                <!-- <div class="time-label">
+                <span class="bg-gray">
+                    <i class="fa fa-clock-o bg-gray"></i> Waiting
+                </span>
+              </div>
+                <div>
+                  <i class="fa fa-lock bg-gray"></i>
+
+                  <div class="timeline-item">
+                    <span class="time"><i class="fa fa-clock-o"></i></span>
+
+                    <h3 class="timeline-header"><a href="#">AEIS</a> Registration</h3>
+                  </div>
+                </div> -->
+              <?php
+                //} elseif ($gtdocs['fld_access_type'] == 1 and $gtdocs['fld_aeis'] == 1) {
+              ?>
+              <!-- <div class="time-label">
+                <span class="bg-green"> -->
+                    <?php //$ceaeissave = strtotime($gtdocs['fld_aeis_save_ts']); echo date("F d, Y", $ceaeissave); ?>
+                <!-- </span>
+              </div>
+              <div> -->
+                <!-- <i class="fa fa-check bg-green"></i> -->
+
+                <!-- <div class="timeline-item"> -->
+                  <!-- <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $ceaeissave); ?></span> -->
+
+                  <!-- <h3 class="timeline-header"><a href="#">AEIS</a> Registration</h3>
+                  <div class="timeline-body">
+                    <p><b>ACCESS TYPE </b>Direct Access</p>
+                  </div>
+                </div>
+              </div> -->
+                  <?php 
+                      //if ($gtdocs['fld_bill_status'] == 0) {
+                  ?>
+                    <!-- <div class="time-label">
+                      <span class="bg-gray">
+                          <i class="fa fa-clock-o bg-gray"></i> Waiting
+                      </span>
+                    </div>
+                      <div>
+                        <i class="fa fa-lock bg-gray"></i>
+
+                        <div class="timeline-item">
+                          <span class="time"><i class="fa fa-clock-o"></i></span>
+
+                          <h3 class="timeline-header"><a href="#">AEIS</a> BCPP Confirmation</h3>
+                        </div>
+                      </div> -->
+                      <?php
+                        //} elseif ($gtdocs['fld_bill_status'] == 1) {
+                      ?>
+                    <!-- <div class="time-label">
+                      <span class="bg-orange"> -->
+                          <?php //$bcppsent = strtotime($gtdocs['fld_bill_emailsent']); echo date("F d, Y", $bcppsent); ?>
+                      <!-- </span>
+                    </div>
+                      <div>
+                        <i class="fa fa-lock bg-orange"></i>
+
+                        <div class="timeline-item"> -->
+                          <!-- <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $bcppsent); ?></span> -->
+
+                          <!-- <h3 class="timeline-header"><a href="#">AEIS</a> BCPP Confirmation Link Sent</h3>
+                          <p><i class="fa fa-clock-o"></i> Waiting for the confirmation of BCPP</p>
+                        </div>
+                      </div> -->
+                  <?php
+                      //} elseif ($gtdocs['fld_bill_status'] >= 2) {
+                  ?>
+                    <!-- <div class="time-label">
+                      <span class="bg-green"> -->
+                          <?php //$bcppconf = strtotime($gtdocs['fld_bill_emailconfirmed']); echo date("F d, Y", $bcppconf); ?>
+                      <!-- </span>
+                    </div>
+                      <div>
+                        <i class="fa fa-check bg-green"></i>
+
+                        <div class="timeline-item"> -->
+                          <!-- <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $bcppconf); ?></span>
+
+                          <h3 class="timeline-header"><a href="#">AEIS</a> BCPP Confirmation</h3>
+                          <div class="timeline-body">
+                            <p><b>Status: </b></i> Email Confirmed.</p>
+                            <p><b>BCPP: </b> <?php //echo $gtdocs['fld_bill_contact_fname']. " " .$gtdocs['fld_bill_contact_mname']. " " .$gtdocs['fld_bill_contact_lname']; ?>, <b>EMAIL:</b> <?php //echo $gtdocs['fld_bill_email']; ?></p>
+                          </div>
+                        </div>
+                      </div> -->
+                  <?php
+                      //}
+                  ?>
+                  <?php
+                    //if ($gtdocs['fld_aeis_com_status'] < 2) {
+                  ?>
+                  <!-- <div class="time-label">
+                    <span class="bg-gray">
+                        <i class="fa fa-clock-o bg-gray"></i> Waiting
+                    </span>
+                  </div>
+                    <div>
+                      <i class="fa fa-lock bg-gray"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> sending of Attachments to AE</h3>
+                      </div>
+                    </div> -->
+                    <?php
+                      //} elseif($gtdocs['fld_aeis_com_status'] >= 2) {
+                    ?>
+                    <!-- <div class="time-label">
+                    <span class="bg-green">
+                        <?php //$bcppconf = strtotime($gtdocs['fld_bill_emailconfirmed']); echo date("F d, Y", $bcppconf); ?>
+                    </span>
+                  </div>
+                    <div>
+                      <i class="fa fa-check bg-green"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $bcppconf); ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Attachments was sent</h3>
+                        <p><b>Note:</b> FI will send the attachments to CIC</p>
+                      </div>
+                    </div> -->
+                  <?php
+                    //}
+                  ?>
+                  <?php
+                    //if ($gtdocs['fld_aeisform_ts'] and $gtdocs['fld_webops_ts'] and $gtdocs['fld_aeissec_ts'] and $gtdocs['fld_aeismoa_ts']) {
+                  ?>
+                    <!-- <div class="time-label">
+                    <span class="bg-green">
+                        Upload AEIS Documents
+                    </span>
+                  </div>
+                    <div>
+                      <i class="fa fa-check bg-green"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("F d, Y - h:ia", strtotime($gtdocs['fld_aeisform_ts'])); ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> AEIS Form</h3> -->
+                        <!-- <p><b>Note:</b> FI will send the attachments to CIC</p> -->
+                      <!-- </div>
+                    </div>
+                    <div>
+                      <i class="fa fa-check bg-green"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("F d, Y - h:ia", strtotime($gtdocs['fld_webops_ts'])); ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Web Operators Form</h3> -->
+                        <!-- <p><b>Note:</b> FI will send the attachments to CIC</p> -->
+                      <!-- </div>
+                    </div>
+                    <div>
+                      <i class="fa fa-check bg-green"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("F d, Y - h:ia", strtotime($gtdocs['fld_aeissec_ts'])); ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Secretary's Certificate</h3> -->
+                        <!-- <p><b>Note:</b> FI will send the attachments to CIC</p> -->
+                      <!-- </div>
+                    </div>
+                    <div>
+                      <i class="fa fa-check bg-green"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("F d, Y - h:ia", strtotime($gtdocs['fld_aeismoa_ts'])); ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Memorandum of Agreement</h3> -->
+                        <!-- <p><b>Note:</b> FI will send the attachments to CIC</p> -->
+                      <!-- </div>
+                    </div> -->
+                  <?php
+                    //} else {
+                  ?>
+                    <!-- <div class="time-label">
+                    <span class="bg-gray">
+                        Upload AEIS Documents
+                    </span>
+                  </div>
+                    <div>
+                      <?php
+                        //if ($gtdocs['fld_aeisform_ts']) {
+                      ?>
+                      <i class="fa fa-check bg-green"></i>
+                      <?php
+                        //} else {
+                      ?>
+                      <i class="fa fa-check bg-gray"></i> -->
+                      <?php
+                        //}
+                      ?>
+
+                      <!-- <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //if($gtdocs['fld_aeisform_ts']){ echo date("F d, Y - h:ia", strtotime($gtdocs['fld_aeisform_ts'])); } ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> AEIS Form</h3> -->
+                        <!-- <p><b>Note:</b> FI will send the attachments to CIC</p> -->
+                      <!-- </div>
+                    </div>
+                    <div> -->
+                      <?php
+                        //if ($gtdocs['fld_webops_ts']) {
+                      ?>
+                      <!-- <i class="fa fa-check bg-green"></i> -->
+                      <?php
+                        //} else {
+                      ?>
+                      <!-- <i class="fa fa-check bg-gray"></i> -->
+                      <?php
+                        //}
+                      ?>
+<!-- 
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //if($gtdocs['fld_webops_ts']) { echo date("F d, Y - h:ia", strtotime($gtdocs['fld_webops_ts'])); } ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Web Operators Form</h3> -->
+                        <!-- <p><b>Note:</b> FI will send the attachments to CIC</p> -->
+                      <!-- </div>
+                    </div>
+                    <div> -->
+                      <?php
+                        //if ($gtdocs['fld_aeissec_ts']) {
+                      ?>
+                      <!-- <i class="fa fa-check bg-green"></i> -->
+                      <?php
+                        //} else {
+                      ?>
+                      <!-- <i class="fa fa-check bg-gray"></i> -->
+                      <?php
+                        //}
+                      ?>
+
+                      <!-- <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //if($gtdocs['fld_aeissec_ts']) { echo date("F d, Y - h:ia", strtotime($gtdocs['fld_aeissec_ts'])); } ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Secretary's Certificate</h3> -->
+                        <!-- <p><b>Note:</b> FI will send the attachments to CIC</p> -->
+                      <!-- </div>
+                    </div>
+                    <div> -->
+                      <?php
+                        //if ($gtdocs['fld_aeismoa_ts']) {
+                      ?>
+                      <!-- <i class="fa fa-check bg-green"></i> -->
+                      <?php
+                        //} else {
+                      ?>
+                      <!-- <i class="fa fa-check bg-gray"></i> -->
+                      <?php
+                       // }
+                      ?>
+
+                      <!-- <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //if($gtdocs['fld_aeismoa_ts']) { echo date("F d, Y - h:ia", strtotime($gtdocs['fld_aeismoa_ts'])); }  ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Memorandum of Agreement</h3> -->
+                        <!-- <p><b>Note:</b> FI will send the attachments to CIC</p> -->
+                      <!-- </div>
+                    </div> -->
+                  <?php
+                    //}
+                  ?>
+                  <?php
+                       //if ($gtdocs['fld_aeis_com_status'] <= 2) {
+                  ?>
+                    <!-- <div class="time-label">
+                      <span class="bg-gray">
+                          <i class="fa fa-clock-o bg-gray"></i> Waiting
+                      </span>
+                    </div>
+                    <div>
+                      <i class="fa fa-lock bg-gray"></i>
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i></span>
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Documents - Validation</h3>
+                      </div>
+                    </div> -->
+                  <?php
+                      //} elseif ($gtdocs['fld_aeis_com_status'] > 2) {
+                  ?>
+                  <!-- <div class="time-label">
+                    <span class="bg-green">
+                        <?php //$aedsts = strtotime($rowrsrf['fld_aeis_ds_completed_ts']); echo date("F d, Y", $aedsts);; ?>
+                    </span>
+                  </div>
+                  <div>
+                    <i class="fa fa-check bg-green"></i>
+                    <div class="timeline-item">
+                      <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $aedsts);; ?></span>
+
+                      <h3 class="timeline-header"><a href="#">AEIS</a> Documents - Validation.</h3>
+                      <div class="timeline-body">
+                        <p><b>Validated by: </b></i> <?php //echo $rowrsrf['fld_aeis_ds_completed_by']; ?></p>
+                      </div>
+                    </div>
+                  </div> -->
+                  <?php
+                    //}
+                  ?>
+                  <?php
+                    // $sqlbill = $dbh4->query("SELECT * FROM tbbilling WHERE fld_provcode = '".$gtdocs['provcode']."'");
+                    // $sb=$sqlbill->fetch_array();
+                    // $sqlpayment = $dbh->query("SELECT * FROM tbcrbillingpayment WHERE fld_acct_no = '".$sb['fld_accountno']."'");
+                    // $sp=$sqlpayment->fetch_array();
+
+                    // if (!$sp['fld_amount']) {
+                  ?>
+                  <!-- <div class="time-label">
+                    <span class="bg-gray"> -->
+                        <!-- <i class="fa fa-clock-o bg-gray"></i> Waiting
+                    </span>
+                  </div>
+                    <div>
+                      <i class="fa fa-lock bg-gray"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Advance Payment</h3>
+                      </div>
+                    </div> -->
+                  <?php
+                    //} elseif ($sp['fld_amount']) {
+                  ?>
+                  <!-- <div class="time-label">
+                    <span class="bg-green">
+                        <?php //$pts = strtotime($sp['fld_datetime']); echo date("F d, Y", $pts); ?>
+                    </span>
+                  </div>
+                    <div>
+                      <i class="fa fa-check bg-green"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $pts); ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Advance Payment</h3>
+                        <div class="timeline-body">
+                          <p><b>Status: </b> Paid.</p>
+                          <p><b>Date of Payment: </b> <?php //cho date("F d, Y", strtotime($sp['fld_payment_date'])); ?></p>
+                        </div>
+                      </div>
+                    </div>
+                  <?php
+                    //}
+                  ?>
+                  <?php
+                    //if ($rowrsrf['fld_moa_status'] == 0) {
+                  ?>
+                  <div class="time-label">
+                    <span class="bg-gray">
+                        <i class="fa fa-clock-o bg-gray"></i> Waiting
+                    </span>
+                  </div>
+                    <div>
+                      <i class="fa fa-lock bg-gray"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Signed MOA Approval</h3>
+                      </div>
+                    </div>
+                  <?php
+                    //} elseif ($rowrsrf['fld_moa_status'] == 1) {
+                  ?>
+                  <div class="time-label">
+                    <span class="bg-green">
+                        <?php //$moats = strtotime($rowrsrf['fld_moa_ts']); echo date("F d, Y", $moats); ?>
+                    </span>
+                  </div>
+                    <div>
+                      <i class="fa fa-check bg-green"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $moats); ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Signed MOA Approval</h3>
+                        <div class="timeline-body">
+                          <p><b>Status: </b> Approved.</p>
+                          <p><b>Approved by: </b> <?php //echo $rowrsrf['fld_moa_by']; ?></p>
+                        </div>
+                      </div>
+                    </div>
+                  <?php
+                    //}
+                  ?>
+                  <?php
+                     // if ($rowrsrf['fld_aeis_process'] != 4) {
+                    ?>
+                    <div class="time-label">
+                      <span class="bg-gray">
+                          <i class="fa fa-clock-o bg-gray"></i> Waiting
+                      </span>
+                    </div>
+                      <div>
+                        <i class="fa fa-lock bg-gray"></i>
+
+                        <div class="timeline-item">
+                          <span class="time"><i class="fa fa-clock-o"></i></span>
+
+                          <h3 class="timeline-header"><a href="#">AEIS</a> NOC - Credentials</h3>
+                          <div class="timeline-body">
+                            <h4>NOTE:</h4>
+                            <p>Signed MOA Approval, Initial/Advance Payment, AE Qualification Approval must be resolved to proceed with NOC Generation of AE Credentials</p>
+                        </div>
+                        </div>
+                      </div>
+                      <div>
+                        <i class="fa fa-clock-o bg-gray"></i>
+                      </div>
+                    <?php
+                      //} elseif ($rowrsrf['fld_aeis_process'] == 4) {
+                    ?>
+                    <div class="time-label">
+                      <span class="bg-green">
+                          <?php //$aegcts = strtotime($rowrsrf['fld_aeis_noc_ts']); echo date("F d, Y", $aegcts); ?>
+                      </span>
+                    </div>
+                    <div>
+                      <i class="fa fa-check bg-green"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $aegcts); ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> NOC - Credentials</h3>
+                        <div class="timeline-body">
+                            <p><b>Status: </b> Generated.</p>
+                            <p><b>Generated by: </b> <?php //echo $rowrsrf['fld_aeis_noc_done_by']; ?></p>
+                          </div>
+                      </div>
+                    </div>
+                    <div>
+                      <i class="fa fa-flag bg-green"></i>
+
+                      <div class="timeline-item">
+
+                        <h3 class="timeline-header"><a href="#"></a><?php //echo $gtdocs['name']; ?></h3>
+                        <div class="timeline-body">
+                            <h4>Completed the CEIS Process</h4>
+                        </div>
+                      </div>
+                    </div>
+                    <?php
+                     // }
+                    ?>
+              <?php
+                //} elseif ($gtdocs['fld_access_type'] == 2 and $gtdocs['sae']) {
+              ?>
+                <div class="time-label">
+                <span class="bg-green">
+                    <?php //$ceaeissave = strtotime($gtdocs['fld_aeis_save_ts']); echo date("F d, Y", $ceaeissave); ?> -->
+                    <!-- SUCCESS
+                </span>
+              </div>
+              <div>
+                <i class="fa fa-check bg-green"></i>
+
+                <div class="timeline-item">
+                  <span class="time"><i class="fa fa-clock-o"></i></span>
+                  <h3 class="timeline-header"><a href="#">AEIS</a> Registration</h3>
+                  <div class="timeline-body">
+                    <p><b>ACCESS TYPE </b>SAE Access ( <?php //echo $gtdocs['sae']; ?> )</p>
+                    <p> </p>
+                  </div>
+                </div>
+              </div>
+              <div class="time-label">
+                <span class="bg-green">
+                    Upload AEIS Documents
+                </span>
+              </div>
+              <div> -->
+                <?php
+                 // if ($gtdocs['fld_aeisform_ts']) {
+                ?>
+                <!-- <i class="fa fa-check bg-green"></i> -->
+                <?php
+                  //} else {
+                ?>
+                <!-- <i class="fa fa-check bg-gray"></i> -->
+                <?php
+                  //}
+                ?>
+
+                <!-- <div class="timeline-item"> -->
+                  <!-- <span class="time"><i class="fa fa-clock-o"></i> <?php //if($gtdocs['fld_aeisform_ts']){ echo date("F d, Y - h:ia", strtotime($gtdocs['fld_aeisform_ts'])); } ?></span>
+
+                  <h3 class="timeline-header"><a href="#">AEIS</a> AEIS Form</h3> -->
+                  <!-- <p><b>Note:</b> FI will send the attachments to CIC</p> -->
+                <!-- </div>
+              </div>
+              <div> -->
+                <?php
+                  // $get_selected_sae = explode("|", $gtdocs['sae']);
+                  // if (count($get_selected_sae) > 1) {
+                  //   if ($get_selected_sae[0] == "SAE09670") {
+                  //     $sae_ts = $gtdocs['fld_aesae_ts'];
+                  //   } elseif ($get_selected_sae[0] == "SAE09440") {
+                  //     $sae_ts = $gtdocs['fld_aeissaecrif_ts'];
+                  //   } elseif ($get_selected_sae[0] == "SAE09450") {
+                  //     $sae_ts = $gtdocs['fld_aeissaetransu_ts'];
+                  //   }
+                  // } else {
+                  //   if ($get_selected_sae[0] == "SAE09670") {
+                  //     $sae_ts = $gtdocs['fld_aesae_ts'];
+                  //   } elseif ($get_selected_sae[0] == "SAE09440") {
+                  //     $sae_ts = $gtdocs['fld_aeissaecrif_ts'];
+                  //   } elseif ($get_selected_sae[0] == "SAE09450") {
+                  //     $sae_ts = $gtdocs['fld_aeissaetransu_ts'];
+                  //   }
+                  // }
+                  // if ($sae_ts) {
+                ?>
+                <!-- <i class="fa fa-check bg-green"></i> -->
+                <?php
+                  //} else {
+                ?>
+                <!-- <i class="fa fa-check bg-gray"></i> -->
+                <?php
+                  //}
+                ?>
+<!-- 
+                <div class="timeline-item">
+                  <span class="time"><i class="fa fa-clock-o"></i> <?php //if($sae_ts) { echo date("F d, Y - h:ia", strtotime($sae_ts)); }  ?></span>
+
+                  <h3 class="timeline-header"><a href="#">AEIS</a> AE to SAE Aggreement</h3> -->
+                  <!-- <p><b>Note:</b> FI will send the attachments to CIC</p> -->
+                </div>
+              </div>
+              <div>
+                  <?php
+                    //if ($gtdocs['fld_aeissec_ts']) {
+                  ?>
+                  <!-- <i class="fa fa-check bg-green"></i> -->
+                  <?php
+                    // } else {
+                  ?>
+                  <!-- <i class="fa fa-check bg-gray"></i> -->
+                  <?php
+                    //}
+                  ?>
+                  <!-- <div class="timeline-item">
+                    <span class="time"><i class="fa fa-clock-o"></i> <?php //if($gtdocs['fld_aeissec_ts']) { echo date("F d, Y - h:ia", strtotime($gtdocs['fld_aeissec_ts'])); } ?></span>
+
+                    <h3 class="timeline-header"><a href="#">AEIS</a> Secretary's Certificate</h3> -->
+                    <!-- <p><b>Note:</b> FI will send the attachments to CIC</p> -->
+                  <!-- </div>
+                </div>
+                <div> -->
+                  <?php
+                    //if ($gtdocs['fld_aeismoa_ts']) {
+                  ?>
+                  <!-- <i class="fa fa-check bg-green"></i> -->
+                  <?php
+                    //} else {
+                  ?>
+                  <!-- <i class="fa fa-check bg-gray"></i> -->
+                  <?php
+                    //}
+                  ?>
+<!-- 
+                  <div class="timeline-item">
+                    <span class="time"><i class="fa fa-clock-o"></i> <?php //if($gtdocs['fld_aeismoa_ts']) { echo date("F d, Y - h:ia", strtotime($gtdocs['fld_aeismoa_ts'])); }  ?></span>
+
+                    <h3 class="timeline-header"><a href="#">AEIS</a> Memorandum of Agreement</h3> -->
+                    <!-- <p><b>Note:</b> FI will send the attachments to CIC</p> -->
+                  <!-- </div>
+                </div> -->
+                <?php
+                       //if ($gtdocs['fld_aeis_com_status'] <= 2) {
+                  ?>
+                    <!-- <div class="time-label">
+                      <span class="bg-gray">
+                          <i class="fa fa-clock-o bg-gray"></i> Waiting
+                      </span>
+                    </div>
+                    <div>
+                      <i class="fa fa-lock bg-gray"></i>
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i></span>
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Documents - Validation</h3>
+                      </div>
+                    </div> -->
+                  <?php
+                      //} elseif ($gtdocs['fld_aeis_com_status'] > 2) {
+                  ?>
+                  <!-- <div class="time-label">
+                    <span class="bg-green">
+                        <?php //$aedsts = strtotime($rowrsrf['fld_aeis_ds_completed_ts']); echo date("F d, Y", $aedsts);; ?>
+                    </span>
+                  </div>
+                  <div>
+                    <i class="fa fa-check bg-green"></i>
+                    <div class="timeline-item">
+                      <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $aedsts);; ?></span>
+
+                      <h3 class="timeline-header"><a href="#">AEIS</a> Documents - Validation.</h3>
+                      <div class="timeline-body">
+                        <p><b>Validated by: </b></i> <?php //echo $rowrsrf['fld_aeis_ds_completed_by']; ?></p>
+                      </div>
+                    </div>
+                  </div> -->
+                  <?php
+                    //}
+                  ?>
+                  <?php
+                    //if ($rowrsrf['fld_moa_status'] == 0) {
+                  ?>
+                  <!-- <div class="time-label">
+                    <span class="bg-gray">
+                        <i class="fa fa-clock-o bg-gray"></i> Waiting
+                    </span>
+                  </div>
+                    <div>
+                      <i class="fa fa-lock bg-gray"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Signed MOA Approval</h3>
+                      </div>
+                    </div> -->
+                  <?php
+                    //} elseif ($rowrsrf['fld_moa_status'] == 1) {
+                  ?>
+                  <!-- <div class="time-label">
+                    <span class="bg-green">
+                        <?php //$moats = strtotime($rowrsrf['fld_moa_ts']); echo date("F d, Y", $moats); ?>
+                    </span>
+                  </div>
+                    <div>
+                      <i class="fa fa-check bg-green"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $moats); ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Signed MOA Approval</h3>
+                        <div class="timeline-body">
+                          <p><b>Status: </b> Approved.</p>
+                          <p><b>Approved by: </b> <?php //echo $rowrsrf['fld_moa_by']; ?></p>
+                        </div>
+                      </div>
+                    </div> -->
+                  <?php
+                    //}
+                  ?>
+                  <?php
+                  // $get_sel_sae = explode("|", $gtdocs['sae']);
+                  // if (count($get_sel_sae) > 1) {
+                    // foreach ($get_sel_sae as $key) {
+                    //   # code...
+                    // }
+                  // } else {
+                  //   if ($get_sel_sae[0] == "SAE09670") {
+                  //     $aesaecert_status = $gtdocs['fld_sae_validation_status'];
+                  //     $aesaecert_ts = $gtdocs['fld_sae_validation_ts'];
+                  //     $aesaecert_by = $gtdocs['fld_sae_validation_by'];
+                  //   } elseif ($get_sel_sae[0] == "SAE09440") {
+                  //     $aesaecert_status = $gtdocs['fld_sae_validation_crif_status'];
+                  //     $aesaecert_ts = $gtdocs['fld_sae_validation_crif_approve_ts'];
+                  //     $aesaecert_by = $gtdocs['fld_sae_validation_crif_by'];
+                  //   }
+                    //  elseif ($get_sel_sae[0] == "SAE09450") {
+                    //   # code...
+                    // }
+                  //}
+                    //if ($aesaecert_status == 0) {
+                  
+                  ?>
+                  <!-- <div class="time-label">
+                    <span class="bg-gray">
+                        <i class="fa fa-clock-o bg-gray"></i> Waiting
+                    </span>
+                  </div>
+                    <div>
+                      <i class="fa fa-lock bg-gray"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> AE SAE Certification</h3>
+                      </div>
+                    </div> -->
+                  <?php
+                   // } elseif ($aesaecert_status == 1) {
+                  ?>
+                  <!-- <div class="time-label">
+                    <span class="bg-green">
+                        <?php //$saevalid = strtotime($aesaecert_ts); echo date("F d, Y", $saevalid); ?>
+                    </span>
+                  </div>
+                    <div>
+                      <i class="fa fa-check bg-green"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i><?php //echo date("h:ia", $saevalid); ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> AE SAE Certification</h3>
+                        <div class="timeline-body">
+                          <p><b>Status: </b> Approved.</p>
+                          <p><b>Validated by: </b> <?php //echo $aesaecert_by; ?></p>
+                        </div>
+                      </div>
+                    </div> -->
+                  <?php
+                    //}
+                  ?>
+                  <?php
+                    //if ($gtdocs['fld_sae_status'] == 0) {
+                  ?>
+                  <!-- <div class="time-label">
+                    <span class="bg-gray">
+                        <i class="fa fa-clock-o bg-gray"></i> Waiting
+                    </span>
+                  </div>
+                    <div>
+                      <i class="fa fa-lock bg-gray"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> A2A Generation</h3>
+                      </div>
+                    </div> -->
+                  <?php
+                    //} elseif ($gtdocs['fld_sae_status'] == 1) {
+                  ?>
+                  <!-- <div class="time-label">
+                    <span class="bg-green">
+                        <?php //$moats = strtotime($gtdocs['fld_sae_ts']); echo date("F d, Y", $moats); ?>
+                    </span>
+                  </div>
+                    <div>
+                      <i class="fa fa-check bg-green"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $moats); ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> A2A Generation</h3>
+                        <div class="timeline-body">
+                          <p><b>Status: </b> Generated.</p>
+                          <p><b>Generated by: </b> <?php //echo $gtdocs['fld_sae_by']; ?></p>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <i class="fa fa-flag bg-green"></i>
+
+                      <div class="timeline-item">
+
+                        <h3 class="timeline-header"><a href="#"></a><?php //echo $gtdocs['name']; ?></h3>
+                        <div class="timeline-body">
+                            <h4>Completed the CEIS Process</h4>
+                        </div>
+                      </div>
+                    </div> -->
+                  <?php
+                    //} elseif ($gtdocs['fld_sae_status'] == 2) {
+                  ?>
+                  <!-- <div class="time-label">
+                    <span class="bg-red">
+                        <?php //$moats = strtotime($gtdocs['fld_sae_ts']); echo date("F d, Y", $moats); ?>
+                    </span>
+                  </div>
+                    <div>
+                      <i class="fa fa-check bg-red"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $moats); ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> A2A Generation</h3>
+                        <div class="timeline-body">
+                          <p><b>Status: </b> Rejected.</p>
+                          <p><b>Rejected by: </b> <?php //echo $gtdocs['fld_eject_remarks']; ?></p>
+                        </div>sae_by']; ?></p>
+                          <p><b>Remarks:</b> <?php //echo $gtdocs['fld_sae_r
+                      </div>
+                    </div> -->
+                  <?php
+                    //}
+                  ?>
+              <?php
+                //} elseif ($gtdocs['fld_access_type'] == 3 and $gtdocs['fld_aeis'] = 1) {
+                  // $get_sae = $dbh4->query("SELECT AES_DECRYPT(fld_name, md5(CONCAT(fld_ctrlno, 'RA3019'))) as name FROM tbentities WHERE AES_DECRYPT(fld_provcode, md5(CONCAT(fld_ctrlno, 'RA3019'))) = '".$gtdocs['sae']."';");
+                  // $gs=$get_sae->fetch_array();
+              ?>
+              <?php
+                // $get_pae = $dbh4->query("SELECT * FROM tbpae WHERE fld_provcode = '".$gtdocs['provcode']."' and fld_dqua_emailsent IS NOT NULL");
+                // $gp=$get_pae->fetch_array();
+                // if (!$gp['fld_provcode']) {
+              ?>
+                <!-- <div class="time-label">
+                  <span class="bg-gray">
+                      <i class="fa fa-clock-o bg-gray"></i> Waiting
+                  </span>
+                </div>
+                <div>
+                  <i class="fa fa-lock bg-gray"></i>
+                  <div class="timeline-item">
+                    <span class="time"><i class="fa fa-clock-o"></i></span>
+                    <h3 class="timeline-header"><a href="#">AEIS</a> NOT Potential Accessing Entity</h3>
+                  </div>
+                </div> -->
+              <?php
+                //} elseif ($gp['fld_provcode']) {
+              ?>
+                <!-- <div class="time-label">
+                <span class="bg-green">
+                    <?php //$ceapprove_ts = strtotime($gp['fld_date_listed']); echo date("F d, Y", $ceapprove_ts);; ?>
+                </span>
+              </div>
+              <div>
+                <i class="fa fa-check bg-green"></i>
+                <div class="timeline-item">
+                  <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $ceapprove_ts);; ?></span>
+
+                  <h3 class="timeline-header"><a href="#">AEIS</a> Potential Accessing Entity</h3>
+                  <div class="timeline-body">
+                    <p><b>Validated by: </b></i> CIC Portal</p>
+                  </div>
+                </div>
+              </div> -->
+              <?php
+                //}
+              ?>
+              <?php
+              //if (empty($gtdocs['fld_dqua_report_appr_ts']) and empty($gtdocs['fld_dqua_cert_appr_ts'])) {
+             ?>
+              <!-- <div class="time-label">
+                <span class="bg-gray">
+                    <i class="fa fa-clock-o bg-gray"></i> Waiting
+                </span>
+              </div>
+                <div>
+                  <i class="fa fa-lock bg-gray"></i>
+
+                  <div class="timeline-item">
+                    <span class="time"><i class="fa fa-clock-o"></i></span>
+
+                    <h3 class="timeline-header"><a href="#">DQUA</a> Process</h3>
+                  </div>
+                </div> -->
+             <?php
+              //} elseif ($gtdocs['fld_dqua_report_appr_ts'] and $gtdocs['fld_dqua_cert_appr_ts']) {
+             ?>
+              <!-- <div class="time-label">
+                <span class="bg-green"> -->
+                    <?php
+                    //  if ($gtdocs['fld_dqua_report_appr_ts'] > $gtdocs['fld_dqua_cert_appr_ts']) {
+                    //    $dqua_ts = $gtdocs['fld_dqua_report_appr_ts'];
+                    //  } elseif ($gtdocs['fld_dqua_report_appr_ts'] < $gtdocs['fld_dqua_cert_appr_ts']) {
+                    //    $dqua_ts = $gtdocs['fld_dqua_cert_appr_ts'];
+                    //  }
+                    //  $dqua_tss = strtotime($dqua_ts); echo date("F d, Y", $dqua_tss); 
+                    ?>
+                <!-- </span>
+              </div>
+              <div>
+                <i class="fa fa-check bg-green"></i>
+
+                <div class="timeline-item">
+                  <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $dqua_tss); ?></span>
+
+                  <h3 class="timeline-header"><a href="#">DQUA</a> Process</h3>
+                  <div class="timeline-body"> -->
+                    <!-- <p><b>ACCESS TYPE </b>Direct Access</p> -->
+                  <!-- </div>
+                </div>
+              </div> -->
+             <?php
+              //}
+              ?>
+                <!-- <div class="time-label">
+                <span class="bg-green">
+                    <?php //$ceaeissave = strtotime($gtdocs['fld_aeis_save_ts']); echo date("F d, Y", $ceaeissave); ?>
+                </span>
+              </div>
+              <div>
+                <i class="fa fa-check bg-green"></i>
+
+                <div class="timeline-item">
+                  <span class="time"><i class="fa fa-clock-o"></i></span>
+
+                  <h3 class="timeline-header"><a href="#">AEIS</a> Registration</h3>
+                  <div class="timeline-body">
+                    <p><b>ACCESS TYPE </b>Direct Access and SAE Access ( <?php //echo $gs['name']; ?> )</p>
+                  </div>
+                </div>
+              </div> -->
+              <?php 
+                      //if ($gtdocs['fld_bill_status'] == 0) {
+                  ?>
+                    <!-- <div class="time-label">
+                      <span class="bg-gray">
+                          <i class="fa fa-clock-o bg-gray"></i> Waiting
+                      </span>
+                    </div>
+                      <div>
+                        <i class="fa fa-lock bg-gray"></i>
+
+                        <div class="timeline-item">
+                          <span class="time"><i class="fa fa-clock-o"></i></span>
+
+                          <h3 class="timeline-header"><a href="#">AEIS</a> BCPP Confirmation</h3>
+                        </div>
+                      </div> -->
+                      <?php
+                        //} elseif ($gtdocs['fld_bill_status'] == 1) {
+                      ?>
+                      <!-- <div class="time-label">
+                      <span class="bg-orange">
+                          <?php //$bcppsent = strtotime($gtdocs['fld_bill_emailsent']); echo date("F d, Y", $bcppsent); ?>
+                      </span>
+                    </div>
+                      <div>
+                        <i class="fa fa-lock bg-orange"></i>
+
+                        <div class="timeline-item">
+                          <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $bcppsent); ?></span>
+
+                          <h3 class="timeline-header"><a href="#">AEIS</a> BCPP Confirmation Link Sent</h3>
+                          <p><i class="fa fa-clock-o"></i> Waiting for the confirmation of BCPP</p>
+                        </div>
+                      </div> -->
+                  <?php
+                      //} elseif ($gtdocs['fld_bill_status'] >= 2) {
+                  ?>
+                    <!-- <div class="time-label">
+                      <span class="bg-green">
+                          <?php //$bcppconf = strtotime($gtdocs['fld_bill_emailconfirmed']); echo date("F d, Y", $bcppconf); ?>
+                      </span>
+                    </div>
+                      <div>
+                        <i class="fa fa-check bg-green"></i>
+
+                        <div class="timeline-item">
+                          <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $bcppconf); ?></span>
+
+                          <h3 class="timeline-header"><a href="#">AEIS</a> BCPP Confirmation</h3>
+                          <div class="timeline-body">
+                            <p><b>Status: </b></i> Email Confirmed.</p>
+                            <p><b>BCPP: </b> <?php //echo $gtdocs['fld_bill_contact_fname']. " " .$gtdocs['fld_bill_contact_mname']. " " .$gtdocs['fld_bill_contact_lname']; ?>, <b>EMAIL:</b> <?php //echo $gtdocs['fld_bill_email']; ?></p>
+                          </div>
+                        </div>
+                      </div> -->
+                  <?php
+                      //}
+                  ?>
+                  <?php
+                    //if ($gtdocs['fld_aeis_com_status'] < 2) {
+                  ?>
+                  <!-- <div class="time-label">
+                    <span class="bg-gray">
+                        <i class="fa fa-clock-o bg-gray"></i> Waiting
+                    </span>
+                  </div>
+                    <div>
+                      <i class="fa fa-lock bg-gray"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> sending of Attachments to AE</h3>
+                      </div>
+                    </div> -->
+                    <?php
+                      //} elseif($gtdocs['fld_aeis_com_status'] >= 2) {
+                    ?>
+                    <!-- <div class="time-label">
+                    <span class="bg-green">
+                        <?php //$bcppconf = strtotime($gtdocs['fld_bill_emailconfirmed']); echo date("F d, Y", $bcppconf); ?>
+                    </span>
+                  </div>
+                    <div>
+                      <i class="fa fa-check bg-green"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $bcppconf); ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Attachments was sent</h3>
+                        <p><b>Note:</b> FI will send the attachments to CIC</p>
+                      </div>
+                    </div> -->
+                  <?php
+                    //}
+                  ?>
+                  <?php
+                    //if ($gtdocs['fld_aeisform_ts'] and $gtdocs['fld_webops_ts'] and $gtdocs['fld_aeissec_ts'] and $gtdocs['fld_aeismoa_ts']) {
+                  ?>
+                    <!-- <div class="time-label">
+                    <span class="bg-green">
+                        Upload AEIS Documents
+                    </span>
+                  </div>
+                    <div>
+                      <i class="fa fa-check bg-green"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("F d, Y - h:ia", strtotime($gtdocs['fld_aeisform_ts'])); ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> AEIS Form</h3> -->
+                        <!-- <p><b>Note:</b> FI will send the attachments to CIC</p> -->
+                      <!-- </div>
+                    </div>
+                    <div>
+                      <i class="fa fa-check bg-green"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("F d, Y - h:ia", strtotime($gtdocs['fld_webops_ts'])); ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Web Operators Form</h3> -->
+                        <!-- <p><b>Note:</b> FI will send the attachments to CIC</p> -->
+                      <!-- </div>
+                    </div>
+                    <div>
+                      <i class="fa fa-check bg-green"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("F d, Y - h:ia", strtotime($gtdocs['fld_aeissec_ts'])); ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Secretary's Certificate</h3> -->
+                        <!-- <p><b>Note:</b> FI will send the attachments to CIC</p> -->
+                      <!-- </div>
+                    </div>
+                    <div>
+                      <i class="fa fa-check bg-green"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("F d, Y - h:ia", strtotime($gtdocs['fld_aeismoa_ts'])); ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Memorandum of Agreement</h3> -->
+                        <!-- <p><b>Note:</b> FI will send the attachments to CIC</p> -->
+                      <!-- </div>
+                    </div> -->
+                  <?php
+                    //} else {
+                  ?>
+                    <!-- <div class="time-label">
+                    <span class="bg-gray">
+                        Upload AEIS Documents
+                    </span>
+                  </div>
+                    <div> -->
+                      <?php
+                        //if ($gtdocs['fld_aeisform_ts']) {
+                      ?>
+                      <!-- <i class="fa fa-check bg-green"></i> -->
+                      <?php
+                        //} else {
+                      ?>
+                      <!-- <i class="fa fa-check bg-gray"></i> -->
+                      <?php
+                        // }
+                      ?>
+
+                      <!-- <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //if($gtdocs['fld_aeisform_ts']){ echo date("F d, Y - h:ia", strtotime($gtdocs['fld_aeisform_ts'])); } ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> AEIS Form</h3> -->
+                        <!-- <p><b>Note:</b> FI will send the attachments to CIC</p> -->
+                      <!-- </div>
+                    </div>
+                    <div> -->
+                      <?php
+                        //if ($gtdocs['fld_webops_ts']) {
+                      ?>
+                      <!-- <i class="fa fa-check bg-green"></i> -->
+                      <?php
+                        //} else {
+                      ?>
+                      <!-- <i class="fa fa-check bg-gray"></i> -->
+                      <?php
+                        //}
+                      ?>
+
+                      <!-- <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //if($gtdocs['fld_webops_ts']) { echo date("F d, Y - h:ia", strtotime($gtdocs['fld_webops_ts'])); } ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Web Operators Form</h3> -->
+                        <!-- <p><b>Note:</b> FI will send the attachments to CIC</p> -->
+                      <!-- </div>
+                    </div>
+                    <div> -->
+                      <?php
+                        //if ($gtdocs['fld_aeissec_ts']) {
+                      ?>
+                      <!-- <i class="fa fa-check bg-green"></i> -->
+                      <?php
+                        //} else {
+                      ?>
+                      <!-- <i class="fa fa-check bg-gray"></i> -->
+                      <?php
+                        // }
+                      ?>
+
+                      <!-- <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //if($gtdocs['fld_aeissec_ts']) { echo date("F d, Y - h:ia", strtotime($gtdocs['fld_aeissec_ts'])); } ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Secretary's Certificate</h3> -->
+                        <!-- <p><b>Note:</b> FI will send the attachments to CIC</p> -->
+                      </div>
+                    </div>
+                    <div>
+                      <?php
+                        //if ($gtdocs['fld_aeismoa_ts']) {
+                      ?>
+                      <!-- <i class="fa fa-check bg-green"></i> -->
+                      <?php
+                        // } else {
+                      ?>
+                      <!-- <i class="fa fa-check bg-gray"></i> -->
+                      <?php
+                        //}
+                      ?>
+
+                      <!-- <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //if($gtdocs['fld_aeismoa_ts']) { echo date("F d, Y - h:ia", strtotime($gtdocs['fld_aeismoa_ts'])); }  ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Memorandum of Agreement</h3> -->
+                        <!-- <p><b>Note:</b> FI will send the attachments to CIC</p> -->
+                      <!-- </div>
+                    </div> -->
+                  <?php
+                    //}
+                  ?>
+                  <?php
+                       //if ($gtdocs['fld_aeis_com_status'] <= 2) {
+                  ?>
+                    <!-- <div class="time-label">
+                      <span class="bg-gray">
+                          <i class="fa fa-clock-o bg-gray"></i> Waiting
+                      </span>
+                    </div>
+                    <div>
+                      <i class="fa fa-lock bg-gray"></i>
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i></span>
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Documents - Validation</h3>
+                      </div>
+                    </div> -->
+                  <?php
+                     // } elseif ($gtdocs['fld_aeis_com_status'] > 2) {
+                  ?>
+                  <!-- <div class="time-label">
+                    <span class="bg-green">
+                        <?php //$aedsts = strtotime($rowrsrf['fld_aeis_ds_completed_ts']); echo date("F d, Y", $aedsts);; ?>
+                    </span>
+                  </div>
+                  <div>
+                    <i class="fa fa-check bg-green"></i>
+                    <div class="timeline-item">
+                      <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $aedsts);; ?></span>
+
+                      <h3 class="timeline-header"><a href="#">AEIS</a> Documents - Validation.</h3>
+                      <div class="timeline-body">
+                        <p><b>Validated by: </b></i> <?php //echo $rowrsrf['fld_aeis_ds_completed_by']; ?></p>
+                      </div>
+                    </div>
+                  </div> -->
+                  <?php
+                    //}
+                  ?>
+                  
+                  <?php
+                    //$sqlbill = $dbh4->query("SELECT * FROM tbbilling WHERE fld_provcode = '".$gtdocs['provcode']."'");
+                   // $sb=$sqlbill->fetch_array();
+                    //$sqlpayment = $dbh4->query("SELECT * FROM tbbillingpayment WHERE fld_acct_no = '".$sb['fld_accountno']."'");
+                    
+                    //if ($sqlpayment->num_rows == 0) {
+                      //$sqlpayment = $dbh->query("SELECT * FROM tbcrbillingpayment WHERE fld_acct_no = '".$sb['fld_accountno']."'");
+                    //}
+                    //$sp=$sqlpayment->fetch_array();
+
+                    // if (!$sp['fld_amount']) {
+                    //   echo $sp['fld_amount'];
+                  ?>
+                  <!-- <div class="time-label">
+                    <span class="bg-gray">
+                        <i class="fa fa-clock-o bg-gray"></i> Waiting
+                    </span>
+                  </div>
+                    <div>
+                      <i class="fa fa-lock bg-gray"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Advance Payment</h3>
+                      </div>
+                    </div> -->
+                  <?php
+                    // } elseif ($sp['fld_amount']) {
+                    //   echo $sp['fld_amount'];
+                  ?>
+                  <!-- <div class="time-label">
+                    <span class="bg-green">
+                        <?php //$pts = strtotime($sp['fld_datetime']); echo date("F d, Y", $pts); ?>
+                    </span>
+                  </div>
+                    <div>
+                      <i class="fa fa-check bg-green"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $pts); ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Advance Payment</h3>
+                        <div class="timeline-body">
+                          <p><b>Status: </b> Paid.</p>
+                          <p><b>Date of Payment: </b> <?php //echo date("F d, Y", strtotime($sp['fld_payment_date'])); ?></p>
+                        </div>
+                      </div>
+                    </div> -->
+                  <?php
+                    //}
+                  ?>
+                  <?php
+                    //if ($rowrsrf['fld_moa_status'] == 0) {
+                  ?>
+                  <!-- <div class="time-label">
+                    <span class="bg-gray">
+                        <i class="fa fa-clock-o bg-gray"></i> Waiting
+                    </span>
+                  </div>
+                    <div>
+                      <i class="fa fa-lock bg-gray"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Signed MOA Approval</h3>
+                      </div>
+                    </div> -->
+                  <?php
+                    //} elseif ($rowrsrf['fld_moa_status'] == 1) {
+                  ?>
+                  <!-- <div class="time-label">
+                    <span class="bg-green">
+                        <?php //$moats = strtotime($rowrsrf['fld_moa_ts']); echo date("F d, Y", $moats); ?>
+                    </span>
+                  </div>
+                    <div>
+                      <i class="fa fa-check bg-green"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $moats); ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> Signed MOA Approval</h3>
+                        <div class="timeline-body">
+                          <p><b>Status: </b> Approved.</p>
+                          <p><b>Approved by: </b> <?php //echo $rowrsrf['fld_moa_by']; ?></p>
+                        </div>
+                      </div>
+                    </div> -->
+                  <?php
+                    //}
+                  ?>
+                  <?php
+                      //if ($rowrsrf['fld_aeis_process'] != 4) {
+                    ?>
+                    <!-- <div class="time-label">
+                      <span class="bg-gray">
+                          <i class="fa fa-clock-o bg-gray"></i> Waiting
+                      </span>
+                    </div>
+                      <div>
+                        <i class="fa fa-lock bg-gray"></i>
+
+                        <div class="timeline-item">
+                          <span class="time"><i class="fa fa-clock-o"></i></span>
+
+                          <h3 class="timeline-header"><a href="#">AEIS</a> NOC - Credentials</h3>
+                          <div class="timeline-body">
+                            <h4>NOTE:</h4>
+                            <p>Signed MOA Approval, Initial/Advance Payment, AE Qualification Approval must be resolved to proceed with NOC Generation of AE Credentials</p>
+                        </div>
+                        </div>
+                      </div>
+                      <div>
+                        <i class="fa fa-clock-o bg-gray"></i>
+                      </div> -->
+                    <?php
+                      //} elseif ($rowrsrf['fld_aeis_process'] == 4) {
+                    ?>
+                    <!-- <div class="time-label">
+                      <span class="bg-green">
+                          <?php //$aegcts = strtotime($rowrsrf['fld_aeis_noc_ts']); echo date("F d, Y", $aegcts); ?>
+                      </span>
+                    </div>
+                    <div>
+                      <i class="fa fa-check bg-green"></i>
+
+                      <div class="timeline-item">
+                        <span class="time"><i class="fa fa-clock-o"></i> <?php //echo date("h:ia", $aegcts); ?></span>
+
+                        <h3 class="timeline-header"><a href="#">AEIS</a> NOC - Credentials</h3>
+                        <div class="timeline-body">
+                            <p><b>Status: </b> Generated.</p>
+                            <p><b>Generated by: </b> <?php //echo $rowrsrf['fld_aeis_noc_done_by']; ?></p>
+                          </div>
+                      </div>
+                    </div>
+                    <div>
+                      <i class="fa fa-flag bg-green"></i>
+
+                      <div class="timeline-item">
+
+                        <h3 class="timeline-header"><a href="#"></a><?php //echo $gtdocs['name']; ?></h3>
+                        <div class="timeline-body">
+                            <h4>Completed the CEIS Process</h4>
+                        </div>
+                      </div>
+                    </div> -->
+                    <?php
+                      //}
+                    ?>
+              <?php
+                //}
+              ?>
+          <!-- </div>
+          <br/><br/> -->
+      <!-- /</div> -->
+      <!-- </div> -->
+      
+    <!-- </div> -->
+  </div>
+</div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header d-flex p-0">
+        <h3 class="card-title p-3">Approval</h3>
+      </div><!-- /.card-header -->
+      <div class="card-body">
+        <!-- <div class="form-group">
+          <form method="post" enctype="multipart/form-data">
+            <label for="exampleInputFile">File input</label>
+              <div class="input-group">
+                <div class="custom-file">
+                  <input type="file" class="custom-file-input" name ="inputFile">
+                  <label class="custom-file-label" for="exampleInputFile">Choose file</label>
+                </div>
+                <div class="input-group-append">
+                  <input class="input-group-text" type="submit" name="uploadBtn" value="Upload"></input>
+                </div>
+              </div>
+          </form>
+        </div> -->
+        <!-- <div class="form-group"> -->
+          <!-- <label>Corrective Action</label> -->
+            <!-- <select class="form-control select2" name="approvalCorrAct" style="width: 100%;"> -->
+              <!-- <option selected="" disabled="">--SELECT OPTION---</option> -->
+              <!-- <option value="1">1. Required Attendance in Technical Training Sessions</option><option value="2">2. Issuance of a Letter of Compliance</option>                  </select>   -->
+                <?php
+                  // foreach ($approvalCorrActOptions as $key => $value) {
+                  //   echo "<option value='".$key."'".$corrActsel[$key].">".$value."</option>";
+                  // }
+                ?>
+            <!-- </select> -->
+        <!-- </div> -->
+        <form method="post">
+        <label>Corrective Action</label>
+            <select class="form-control select2" name="approvalCorrAct" style="width: 100%;" onchange="submit()">
+              <option selected="" disabled="">--SELECT OPTION---</option>
+              <!-- <option value="1">1. Required Attendance in Technical Training Sessions</option><option value="2">2. Issuance of a Letter of Compliance</option>                  </select>   -->
+                <?php
+                  foreach ($approvalCorrActOptions as $key => $value) {
+                    echo "<option value='".$key."'".$corrActsel[$key].">".$value."</option>";
+                  }
+                ?>
+            </select>
+
+          <label>Remarks:</label>
+            <textarea class="form-control" name="approval_remarks"></textarea>
+            
+
+            <?php 
+              if ($_POST['approvalCorrAct'] == "6") {
+            ?>
+                    <!-- <div id="collapseOne" class="collapse" data-parent="#accordion" style=""> -->
+                      <div class="card-body">
+                        <label>Choose Type of Offense</label>
+                          <select class="form-control select2" name="offenseType" style="width: 100%;" onchange="submit()">
+                            <option selected="" disabled="">--SELECT OPTION---</option>
+                            <!-- <option value="1">Minor Offense</option><option value="2">Major Offense</option>                   -->
+                            <?php
+                              foreach ($offenseTypeOptions as $key1 => $value1) {
+                                echo "<option value='".$key1."'".$offTypSel[$key1].">".$value1."</option>";
+                              }
+                             ?>
+                          </select> 
+                          <br>
+                      <!-- </div> -->
+                            <!-- START OG -->
+                              <!-- <select class="form-control select2" name="offenseLevel" style="width: 100%;"> -->
+                                <!-- <option selected="" disabled="">--SELECT OPTION---</option> -->
+                                <!-- <option value="1">1st Offense</option><option value="2">2nd Offense</option><option value="3">3rd Offense</option>                  -->
+                                <?php
+                                  // foreach ($offenseLevelOptions as $key2 => $value2) {
+                                  //   echo "<option value='".$key2."'".$offLvlSel[$key2].">".$value2."</option>";
+                                  // }
+                                ?>
+                              <!-- </select> -->
+                            <!-- END OG -->
+
+                              <!-- START HERE -->
+                              <?php
+                                if ($_POST['offenseType'] == "1") {
+                              ?>
+
+                                  <select class="form-control select2" name="offenseLevel" style="width: 100%;">
+                                    <option selected="" disabled="">--SELECT OPTION---</option>
+                                    <!-- <option value="1">1st Offense</option><option value="2">2nd Offense</option><option value="3">3rd Offense</option>                  -->
+                                    <?php
+                                      foreach ($offenseLevelOptions1 as $key2 => $value2) {
+                                        echo "<option value='".$key2."'".$offLvlSel[$key2].">".$value2."</option>";
+                                      }
+                                    ?>
+                                  </select>
+                                  
+                                  <br>
+                                  <label>Reason for Penalty:</label>
+                                  <textarea class="form-control" name="reason_remarks"></textarea>
+                              <?php
+                                }
+                              
+                                elseif ($_POST['offenseType'] == "2") {
+                              ?>
+
+                                <select class="form-control select2" name="offenseLevel" style="width: 100%;">
+                                  <option selected="" disabled="">--SELECT OPTION---</option>
+                                  <!-- <option value="1">1st Offense</option><option value="2">2nd Offense</option><option value="3">3rd Offense</option>                  -->
+                                  <?php
+                                    foreach ($offenseLevelOptions2 as $key3 => $value3) {
+                                      echo "<option value='".$key3."'".$offLvlSel[$key3].">".$value3."</option>";
+                                    }
+                                  ?>
+                              </select>
+                              <br>
+                              <label>Reason for Penalty:</label>
+                              <textarea class="form-control" name="reason_remarks"></textarea>
+                          <?php
+                            }
+                          ?>
+
+                              <!-- END HERE -->
+                        </div>
+            <?php
+              }
+            ?>
+              <br>            
+            <button type="submit" value="1" name="sbtApprove" class="btn btn-success float">Send Corrective Action</button>
+        </form>
+      </div><!-- /.card-body -->
+    </div>
+      <!-- ./card -->
+
+  <div class="card" style="height: 550px; overflow-y: scroll;">
+    <div class="card-header p-2">
+      <ul class="nav nav-pills">
+        <li class="nav-item">
+          <a class="nav-link active" id="history-tab" href="#history" data-toggle="tab" aria-selected="true">History</a>
+        </li>
+        <!-- <li class="nav-item">
+          <a class="nav-link" id="file-tab" href="#files" data-toggle="tab" aria-selected="false">Files Submitted</a>
+        </li> -->
+      </ul>
+    </div>
+    <div class="card-body">
+      <div class="tab-content">
+        <div class="tab-pane active" id="history">
+          <!-- corrective action -->
+          <?php 
+            $get_corrective_action = $dbh4->query("SELECT * FROM tbict_corrective_action WHERE fld_ctrlno = '".$ctrl_no."' ORDER BY fld_corrective_action_ts DESC");
+            while ($gca = $get_corrective_action->fetch_array()) {
+              if ($gca['fld_corrective_action'] == 1 || $gca['fld_corrective_action'] == 2 || $gca['fld_corrective_action'] == 3 || $gca['fld_corrective_action'] == 4 || $gca['fld_corrective_action'] == 5 || $gca['fld_corrective_action'] == 6) {
+          ?>
+                <div class="callout callout-warning">
+                  <h5><b>Corrective Action</b></h5>
+                  <h6><?php $offenseLevel = ""; $offenseType = ""; if ($gca['fld_icmt_corracc5_off_type'] == "1") { $offenseType = "Minor"; } elseif ($gca['fld_icmt_corracc5_off_type'] == "2") { $offenseType = "Major"; } if ($gca['fld_icmt_corracc5_off_lvl'] == "1") { $offenseLevel = "1st"; } elseif ($gca['fld_icmt_corracc5_off_lvl'] == "2") { $offenseLevel = "2nd"; } elseif ($gca['fld_icmt_corracc5_off_lvl'] == "3") { $offenseLevel = "3rd"; } elseif ($gca['fld_icmt_corracc5_off_lvl'] == "4") { $offenseLevel = "4th"; } if($gca['fld_corrective_action'] == 1) { echo "Follow Up Notice"; } elseif($gca['fld_corrective_action'] == 2) { echo "Required Attendance in Technical Training Sessions"; } elseif($gca['fld_corrective_action'] == 3) { echo "Issuance of a Letter of Compliance"; } elseif($gca['fld_corrective_action'] == 4) { echo "Reporting to Government Regulatory Agencies"; } elseif($gca['fld_corrective_action'] == 5) { echo "Public Warning for Delinquency"; } elseif($gca['fld_corrective_action'] == 6) { echo "Imposition of Administrative Sanctions and Penalties <b>(" .$offenseType. " Offense - " .$offenseLevel. " Offense)</b>"; } ?></h6>
+                  <p><b>Remarks</b>: <?php echo $gca['fld_corrective_action_remarks']; ?></p>
+                  <span>CIC: <?php echo $gca['fld_corrective_action_by']; ?> | <?php echo date("F d Y - h:ia", strtotime($gca['fld_corrective_action_ts'])); ?></span>
+                </div>
+          <?php
+              }
+            }
+          ?>
+
+          <!-- validation -->
+          <?php
+            $get_all_validation_remarks = $dbh4->query("SELECT * FROM tbrevalidation_remarks WHERE fld_ctrlno = '".$ctrl_no."' ORDER BY fld_ts DESC");
+            while ($gavr=$get_all_validation_remarks->fetch_array()) {
+              if ($gavr['fld_validation'] >= 4) {
+          ?>
+                <div class="callout callout-danger">
+                  <h5>RE <?php if($gavr['fld_validation'] == 4) { echo "Rejected"; } elseif($gavr['fld_validation'] == 5) { echo "Approved"; } ?></h5>
+                  <p><b>Remarks</b>: <?php echo $gavr['fld_comments']; ?></p>
+                  <span>CIC: <?php echo $gavr['fld_comment_by']; ?> | <?php echo date("F d Y - h:ia", strtotime($gavr['fld_ts'])); ?></span>
+                </div>
+          <?php
+              } else {
+          ?>
+                  <div class="callout callout-<?php if($gavr['fld_validation'] == 1) { echo "warning"; } elseif($gavr['fld_validation'] == 2) { echo "danger"; } elseif($gavr['fld_validation'] == 3) { echo "success"; }?>">
+                    <h5><?php echo $selvaloptions[$gavr['fld_validation']]; ?></h5>
+                    <p><b>Remarks</b>: <?php echo $gavr['fld_comments']; ?></p>
+                    <span>CIC: <?php echo $gavr['fld_comment_by']; ?> | <?php echo date("F d Y - h:ia", strtotime($gavr['fld_ts'])); ?></span>
+                  </div>
+          <?php
+                }
+            }
+          ?>
+        </div>
+        <!-- tab-pane history closing -->
+        <!-- <div class="tab-pane active" id="files"> -->
+          <!-- EXAMPLE FOR FILE HISTORY -->
+          <?php 
+            // $get_corrective_action = $dbh4->query("SELECT * FROM tbict_validation_remarks WHERE fld_ctrlno = '".$ctrl_no."' ORDER BY fld_corrective_action_ts DESC");
+            // while ($gca = $get_corrective_action->fetch_array()) {
+            //   if ($gca['fld_corrective_action'] == 1 || $gca['fld_corrective_action'] == 2 || $gca['fld_corrective_action'] == 3 || $gca['fld_corrective_action'] == 4 || $gca['fld_corrective_action'] == 5 || $gca['fld_corrective_action'] == 6) {
+          ?>
+                <!-- <div class="callout callout-warning">
+                  <h5><b>Corrective Action</b></h5>
+                  <h6><?php //$offenseLevel = ""; $offenseType = ""; if ($gca['fld_icmt_corracc5_off_type'] == "1") { $offenseType = "Minor"; } elseif ($gca['fld_icmt_corracc5_off_type'] == "2") { $offenseType = "Major"; } if ($gca['fld_icmt_corracc5_off_lvl'] == "1") { $offenseLevel = "1st"; } elseif ($gca['fld_icmt_corracc5_off_lvl'] == "2") { $offenseLevel = "2nd"; } elseif ($gca['fld_icmt_corracc5_off_lvl'] == "3") { $offenseLevel = "3rd"; } elseif ($gca['fld_icmt_corracc5_off_lvl'] == "4") { $offenseLevel = "4th"; } if($gca['fld_corrective_action'] == 1) { echo "Follow Up Notice"; } elseif($gca['fld_corrective_action'] == 2) { echo "Required Attendance in Technical Training Sessions"; } elseif($gca['fld_corrective_action'] == 3) { echo "Issuance of a Letter of Compliance"; } elseif($gca['fld_corrective_action'] == 4) { echo "Reporting to Government Regulatory Agencies"; } elseif($gca['fld_corrective_action'] == 5) { echo "Public Warning for Delinquency"; } elseif($gca['fld_corrective_action'] == 6) { echo "Imposition of Administrative Sanctions and Penalties <b>(" .$offenseType. " Offense - " .$offenseLevel. " Offense)</b>"; } ?></h6>
+                  <p><b>Remarks</b>: <?php //echo $gca['fld_corrective_action_remarks']; ?></p>
+                  <span>CIC: <?php //echo $gca['fld_corrective_action_by']; ?> | <?php //echo date("F d Y - h:ia", strtotime($gca['fld_corrective_action_ts'])); ?></span>
+                </div> -->
+          <?php
+              //}
+            //}
+          ?>
+        </div>
+        <!-- tab-pane files closing -->
+      </div>
+      <!-- tab-content closing -->
+    </div>
+    <!-- card-body closing -->
+  </div> 
+  <!-- card closing -->
+</div>
+</div>
+          
+</section>
+<!-- /.content -->
